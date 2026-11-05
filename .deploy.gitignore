@@ -1,0 +1,17 @@
+/.github/
+/.idea/
+/.vscode/
+/build/
+/tests/
+/docs/
+/AGENTS.md
+/CLAUDE.md
+/.agents/
+/.claude/
+/agent/
+skills-lock.json
+.gitignore
+.wp-env.json
+phpunit.xml.dist
+phpstan.neon.dist
+output.log
