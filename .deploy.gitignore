@@ -1,6 +1,7 @@
 /.github/
 /.idea/
 /.vscode/
+/bin/
 /build/
 /tests/
 /docs/

@@ -63,6 +63,7 @@ jobs:
           rm -rf .github
           rm -rf .idea
           rm -rf .vscode
+          rm -rf bin
           rm -rf build
           rm -rf tests
           rm -rf docs

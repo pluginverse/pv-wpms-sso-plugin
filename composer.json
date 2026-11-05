@@ -13,7 +13,7 @@
         "env:start": "npx @wordpress/env start",
         "env:debug": "npx @wordpress/env start --xdebug=profile,trace,debug",
         "env:stop": "npx @wordpress/env stop",
-        "test": "npx @wordpress/env run tests-cli --env-cwd=wp-content/plugins/pv-wpms-sso vendor/bin/phpunit",
+        "test": "sh bin/test.sh",
         "test-unit": "phpunit --testsuite unit",
         "phpstan": "phpstan analyse --memory-limit=1G"
     },
