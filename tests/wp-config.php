@@ -3,7 +3,7 @@
 define( 'ABSPATH', dirname( __DIR__, 4 ) . '/' );
 
 const WP_TESTS_DOMAIN = 'localhost';
-const WP_TESTS_EMAIL  = 'admin@localhost';
+const WP_TESTS_EMAIL  = 'admin@example.org';
 const WP_TESTS_TITLE  = 'Unit Test Site';
 const WP_PHP_BINARY   = 'php';
 

@@ -54,12 +54,20 @@ function class_autoloader( string $class ): void {
 	}
 
 	static $classMap = [
+		AuthorizeEndpoint::class => __DIR__ . '/src/AuthorizeEndpoint.php',
+		ClientFlow::class => __DIR__ . '/src/ClientFlow.php',
 		InvalidTicketException::class => __DIR__ . '/src/InvalidTicketException.php',
 		JtiTable::class => __DIR__ . '/src/JtiTable.php',
 		KeyStore::class => __DIR__ . '/src/KeyStore.php',
+		LoginScreen::class => __DIR__ . '/src/LoginScreen.php',
+		RedirectGuard::class => __DIR__ . '/src/RedirectGuard.php',
+		ScopePolicy::class => __DIR__ . '/src/ScopePolicy.php',
+		SessionEndpoint::class => __DIR__ . '/src/SessionEndpoint.php',
 		Settings::class => __DIR__ . '/src/Settings.php',
+		StateStore::class => __DIR__ . '/src/StateStore.php',
 		Ticket::class => __DIR__ . '/src/Ticket.php',
 		TicketSigner::class => __DIR__ . '/src/TicketSigner.php',
+		TrustPolicy::class => __DIR__ . '/src/TrustPolicy.php',
 	];
 
 	if ( isset( $classMap[ $class ] ) ) {
@@ -76,3 +84,9 @@ function load_plugin_translations(): void {
 add_action( 'init', '\PV\WpmsSso\load_plugin_translations' );
 
 register_activation_hook( __FILE__, [ JtiTable::class, 'createTable' ] );
+
+add_action( 'rest_api_init', [ AuthorizeEndpoint::class, 'registerRoutes' ] );
+add_action( 'rest_api_init', [ SessionEndpoint::class, 'registerRoutes' ] );
+add_action( 'login_init', [ ClientFlow::class, 'handleRequest' ] );
+add_action( 'login_footer', [ LoginScreen::class, 'render' ] );
+add_filter( 'login_message', [ LoginScreen::class, 'filterLoginMessage' ] );
