@@ -31,7 +31,14 @@ final class LoginScreen {
 	public const ERROR_PARAM = 'pv_wpms_sso_error';
 
 	public static function render(): void {
-		if ( ! self::isDefaultLoginForm() || ! ClientFlow::ssoAvailableForThisSite() ) {
+		if ( ! self::isDefaultLoginForm() ) {
+			return;
+		}
+
+		$networkSsoAvailable = ClientFlow::ssoAvailableForThisSite();
+		$samlAvailable       = SamlFlow::samlButtonAvailableForThisSite();
+
+		if ( ! $networkSsoAvailable && ! $samlAvailable ) {
 			return;
 		}
 
@@ -59,18 +66,12 @@ final class LoginScreen {
 			wp_login_url()
 		);
 
-		printf(
-			'<div id="pv-wpms-sso" class="pv-wpms-sso">
-				<div class="pv-wpms-sso-separator" role="separator"><span>%1$s</span></div>
-				<a id="pv-wpms-sso-button" class="button pv-wpms-sso-button" href="%2$s"
-					data-probe-url="%3$s"
-					data-signed-in-label="%4$s">
-					<span class="pv-wpms-sso-label">%5$s</span>
-				</a>
-			</div>
-			<style>%6$s</style>
-			<script>%7$s</script>',
-			esc_html__( 'or', 'pv-wpms-sso' ),
+		$networkButtonHtml = $networkSsoAvailable ? sprintf(
+			'<a id="pv-wpms-sso-button" class="button pv-wpms-sso-button" href="%1$s"
+				data-probe-url="%2$s"
+				data-signed-in-label="%3$s">
+				<span class="pv-wpms-sso-label">%4$s</span>
+			</a>',
 			esc_url( $startUrl ),
 			esc_url( self::sessionProbeUrl() ),
 			esc_attr( sprintf(
@@ -78,10 +79,42 @@ final class LoginScreen {
 				__( 'Continue as %s', 'pv-wpms-sso' ),
 				'%s'
 			) ),
-			esc_html( $buttonLabel ),
+			esc_html( $buttonLabel )
+		) : '';
+
+		$samlButtonHtml = $samlAvailable ? sprintf(
+			'<a id="pv-wpms-sso-saml-button" class="button pv-wpms-sso-button pv-wpms-sso-saml" href="%1$s">
+				<span class="pv-wpms-sso-label">%2$s</span>
+			</a>',
+			esc_url( SamlFlow::startUrl() ),
+			esc_html( self::samlButtonLabel() )
+		) : '';
+
+		printf(
+			'<div id="pv-wpms-sso" class="pv-wpms-sso">
+				<div class="pv-wpms-sso-separator" role="separator"><span>%1$s</span></div>
+				<div class="pv-wpms-sso-buttons">%2$s%3$s</div>
+			</div>
+			<style>%4$s</style>
+			<script>%5$s</script>',
+			esc_html__( 'or', 'pv-wpms-sso' ),
+			$networkButtonHtml,
+			$samlButtonHtml,
 			self::buttonCss(),
 			self::probeScript()
 		);
+	}
+
+	private static function samlButtonLabel(): string {
+		$idpBlogId    = ClientFlow::idpBlogIdForThisSite();
+		$idpSite      = get_blog_details( $idpBlogId );
+		$idpNetworkId = $idpSite instanceof \WP_Site ? (int) $idpSite->site_id : 0;
+
+		$samlSettings = SamlSettings::forNetwork( $idpNetworkId );
+
+		return '' !== $samlSettings['button_label']
+			? $samlSettings['button_label']
+			: __( 'Sign in with OneLogin', 'pv-wpms-sso' );
 	}
 
 	/**
@@ -165,6 +198,14 @@ final class LoginScreen {
 				'The single sign-on response was already used. Start again.',
 				'pv-wpms-sso'
 			),
+			SamlProvider::ERROR_INVALID_RESPONSE => __(
+				'The single sign-on response from the identity provider was invalid or expired. Try again.',
+				'pv-wpms-sso'
+			),
+			SamlProvider::ERROR_UNKNOWN_USER => __(
+				'No account matches your identity-provider sign-in. Contact the network administrator.',
+				'pv-wpms-sso'
+			),
 			default => null,
 		};
 	}
@@ -174,6 +215,7 @@ final class LoginScreen {
 .pv-wpms-sso-separator{position:relative;text-align:center;margin:8px 0}
 .pv-wpms-sso-separator:before{content:"";position:absolute;top:50%;left:0;width:100%;border-top:1px solid #dcdcde}
 .pv-wpms-sso-separator span{position:relative;background:#fff;padding:0 8px;color:#787c82;font-size:12px}
+.pv-wpms-sso-buttons{display:grid;gap:8px}
 .pv-wpms-sso-button{display:flex!important;align-items:center;justify-content:center;gap:8px;width:100%;height:36px;line-height:2;padding:0 16px}
 .pv-wpms-sso-avatar{width:20px;height:20px;border-radius:50%;flex:none}';
 	}

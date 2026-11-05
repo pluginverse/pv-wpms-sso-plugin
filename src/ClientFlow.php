@@ -86,7 +86,21 @@ final class ClientFlow {
 			? $requestedRedirectTo
 			: '';
 
-		$createdState = StateStore::create( $allowedRedirectTo );
+		$createdState = self::beginState( $allowedRedirectTo );
+
+		wp_redirect( self::authorizeUrl( $createdState['state'] ) );
+		exit;
+	}
+
+	/**
+	 * Create the client-side state binding (transient + HttpOnly cookie).
+	 * Shared by the network-SSO start and the SAML start.
+	 *
+	 * @param string $redirectTo validated final destination ('' for default)
+	 * @return array{state: string, expires_at: int}
+	 */
+	public static function beginState( string $redirectTo ): array {
+		$createdState = StateStore::create( $redirectTo );
 
 		setcookie(
 			StateStore::STATE_COOKIE_NAME,
@@ -100,8 +114,7 @@ final class ClientFlow {
 			]
 		);
 
-		wp_redirect( self::authorizeUrl( $createdState['state'] ) );
-		exit;
+		return $createdState;
 	}
 
 	private static function callback(): never {

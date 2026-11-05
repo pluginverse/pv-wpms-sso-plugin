@@ -68,9 +68,12 @@ final class SamlSettings {
 		return self::mergeWithDefaults( $rawSettings );
 	}
 
-	/** @param array<string, mixed> $settings */
+	/** @param array<string, mixed> $settings partial or complete settings; merged over the stored values */
 	public static function save( int $networkId, array $settings ): bool {
-		return update_network_option( $networkId, self::OPTION_NAME, self::mergeWithDefaults( $settings ) );
+		/** @var array<string, mixed> $currentSettings */
+		$currentSettings = self::forNetwork( $networkId );
+
+		return update_network_option( $networkId, self::OPTION_NAME, self::mergeWithDefaults( array_merge( $currentSettings, $settings ) ) );
 	}
 
 	public static function isEnabled( ?int $networkId = null ): bool {

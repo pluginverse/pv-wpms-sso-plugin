@@ -62,6 +62,9 @@ function class_autoloader( string $class ): void {
 		KeyStore::class => __DIR__ . '/src/KeyStore.php',
 		LoginScreen::class => __DIR__ . '/src/LoginScreen.php',
 		RedirectGuard::class => __DIR__ . '/src/RedirectGuard.php',
+		SamlFlow::class => __DIR__ . '/src/SamlFlow.php',
+		SamlMetadata::class => __DIR__ . '/src/SamlMetadata.php',
+		SamlProvider::class => __DIR__ . '/src/SamlProvider.php',
 		SamlSettings::class => __DIR__ . '/src/SamlSettings.php',
 		ScopePolicy::class => __DIR__ . '/src/ScopePolicy.php',
 		SessionEndpoint::class => __DIR__ . '/src/SessionEndpoint.php',
@@ -72,6 +75,7 @@ function class_autoloader( string $class ): void {
 		TicketIssuer::class => __DIR__ . '/src/TicketIssuer.php',
 		TicketSigner::class => __DIR__ . '/src/TicketSigner.php',
 		TrustPolicy::class => __DIR__ . '/src/TrustPolicy.php',
+		UserMapping::class => __DIR__ . '/src/UserMapping.php',
 	];
 
 	if ( isset( $classMap[ $class ] ) ) {
@@ -105,7 +109,9 @@ register_activation_hook( __FILE__, [ JtiTable::class, 'createTable' ] );
 
 add_action( 'rest_api_init', [ AuthorizeEndpoint::class, 'registerRoutes' ] );
 add_action( 'rest_api_init', [ SessionEndpoint::class, 'registerRoutes' ] );
+add_action( 'rest_api_init', [ SamlMetadata::class, 'registerRoutes' ] );
 add_action( 'login_init', [ ClientFlow::class, 'handleRequest' ] );
+add_action( 'login_init', [ SamlFlow::class, 'handleRequest' ] );
 add_action( 'login_footer', [ LoginScreen::class, 'render' ] );
 add_filter( 'login_message', [ LoginScreen::class, 'filterLoginMessage' ] );
 add_action( 'network_admin_menu', [ SettingsPage::class, 'register' ] );
