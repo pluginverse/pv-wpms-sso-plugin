@@ -1,0 +1,78 @@
+<?php
+/**
+ * Plugin Name: PV WPMS SSO
+ * Description: Plugin Verse WordPress Multisite Single Sign On — one identity site, one login, signed single-use tickets into every site of a domain-mapped multisite or same-database multi-network install.
+ * Version: 0.1.0
+ * Requires at least: 6.5
+ * Requires PHP: 8.2
+ * Author: Plugin Verse
+ * Author URI: https://github.com/pluginverse
+ * License: GPL v3
+ * License URI: https://www.gnu.org/licenses/gpl-3.0.html
+ * Text Domain: pv-wpms-sso
+ * Network: true
+ *
+ * PV WPMS SSO — Plugin Verse WordPress Multisite Single Sign On
+ * Copyright (C) 2026 Plugin Verse
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Additional Permission Under GNU GPL version 3 section 7:
+ *
+ * The name "Plugin Verse" and its associated branding elements are
+ * protected by copyright/trademark law and may not be used in
+ * association with derivative works that are not owned by Plugin Verse
+ * without express written permission.
+ */
+
+namespace PV\WpmsSso;
+
+use function add_action;
+use function register_activation_hook;
+use function spl_autoload_register;
+
+if ( PHP_VERSION_ID < 80200 ) {
+	_doing_it_wrong( __FILE__, 'PV WPMS SSO requires PHP 8.2 or higher.', '0.1.0' );
+
+	return;
+}
+
+function class_autoloader( string $class ): void {
+	if ( ! str_starts_with( $class, __NAMESPACE__ . '\\' ) ) {
+		return;
+	}
+
+	static $classMap = [
+		InvalidTicketException::class => __DIR__ . '/src/InvalidTicketException.php',
+		JtiTable::class => __DIR__ . '/src/JtiTable.php',
+		KeyStore::class => __DIR__ . '/src/KeyStore.php',
+		Settings::class => __DIR__ . '/src/Settings.php',
+		Ticket::class => __DIR__ . '/src/Ticket.php',
+		TicketSigner::class => __DIR__ . '/src/TicketSigner.php',
+	];
+
+	if ( isset( $classMap[ $class ] ) ) {
+		require_once $classMap[ $class ];
+	}
+}
+
+spl_autoload_register( '\PV\WpmsSso\class_autoloader' );
+
+function load_plugin_translations(): void {
+	load_plugin_textdomain( 'pv-wpms-sso', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+}
+
+add_action( 'init', '\PV\WpmsSso\load_plugin_translations' );
+
+register_activation_hook( __FILE__, [ JtiTable::class, 'createTable' ] );

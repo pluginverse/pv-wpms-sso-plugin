@@ -87,6 +87,9 @@ Runner-up: a "shared session table + JS cookie writer" design (single sign-on by
 - [compat] PHP 8.2 floor, WordPress 6.5 floor, network-activated only (`Network: true`) — matches the reference plugin's modern baseline — cost if wrong: low.
 - [autoloading] Runtime class-map autoloader in the main plugin file, Composer used for dev tooling only — zero runtime dependency, mirrors reference plugin — cost if wrong: low.
 - [rest] Authorize returns 302 responses through REST; session probe returns JSON with credentialed CORS — REST gives us route constants and versioning without a rewrite-rule endpoint — cost if wrong: medium, switch authorize to `init`-phase endpoint.
+- [tooling] Build tooling (composer, phpstan, phpunit, tests bootstrap) landed with task 1 instead of task 4 so every commit is verifiable — cost if wrong: low.
+- [bootstrap] wp-env container detection uses WORDPRESS_DB_HOST, because composer's wp-phpunit autoload file exports WP_PHPUNIT__DIR on every host — cost if wrong: medium, unit suite would demand a DB.
+- [jti] JTI rows store `hash('sha256', jti)` so the registry holds fixed-width hashes, not raw ticket IDs — cost if wrong: low.
 
 ## Deferred
 

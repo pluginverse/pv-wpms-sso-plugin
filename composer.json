@@ -1,0 +1,44 @@
+{
+    "name": "pluginverse/pv-wpms-sso",
+    "description": "Plugin Verse WordPress Multisite Single Sign On — one identity site, one login, signed single-use tickets into every site of a domain-mapped multisite or same-database multi-network install.",
+    "type": "wordpress-plugin",
+    "license": "GPL-3.0-or-later",
+    "autoload": {
+        "psr-4": {
+            "PV\\WpmsSso\\": "src/",
+            "PV\\WpmsSso\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "env:start": "wp-env start",
+        "env:debug": "wp-env start --xdebug=profile,trace,debug",
+        "env:stop": "wp-env stop",
+        "test": "wp-env run tests-cli --env-cwd=wp-content/plugins/pv-wpms-sso vendor/bin/phpunit",
+        "test-unit": "phpunit --testsuite unit",
+        "phpstan": "phpstan analyse --memory-limit=1G"
+    },
+    "authors": [
+        {
+            "name": "Plugin Verse",
+            "homepage": "https://github.com/pluginverse"
+        }
+    ],
+    "config": {
+        "platform": {
+            "php": "8.2"
+        },
+        "sort-packages": true,
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        }
+    },
+    "require-dev": {
+        "phpstan/extension-installer": "^1.0",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpunit/phpunit": "^9.0",
+        "szepeviktor/phpstan-wordpress": "^2.0",
+        "wp-phpunit/wp-phpunit": "^6.7",
+        "yoast/phpunit-polyfills": "^4.0"
+    }
+}
