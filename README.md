@@ -1,5 +1,85 @@
 <img src="assets/icon.svg" width="64" height="64" alt="">
 
-# pv-wpms-sso
+# PV WPMS SSO — Plugin Verse WordPress Multisite Single Sign On
 
-Created in [SECode](https://t3.codes).
+One identity site, one login — credentials **and two-factor** — then signed single-use tickets into every site of a domain-mapped WordPress Multisite install. Super admins stop re-typing their password and re-doing 2FA for every mapped domain. Works across networks of a [wp-multi-network](https://github.com/johnbillion/wp-multi-network) (same-database) install too.
+
+## The problem it solves
+
+WordPress auth cookies are host-scoped. On a network of domain-mapped sites, a session on the network's main site is invisible on every mapped domain: to work on `shop.example.net` after signing in at `network.example.com`, you re-enter credentials and pass two-factor again — per domain, every time.
+
+## How it works
+
+1. Each site's `wp-login.php` gets a **"Sign in with {network name}"** button (network-configurable label). An inline, credentialed probe asks the identity site whether a session already exists and personalizes the button to **"Continue as {name}"** with your photo.
+2. Clicking it stores a random state (transient + HttpOnly cookie) and redirects to the network's **identity site** — its root site, or any designated site in the install.
+3. Already signed in there? A 60-second **HMAC-signed, single-use ticket** is minted for you and the browser is sent back with it. Not signed in? You log in at the identity site — two-factor included, exactly once — and the flow continues automatically.
+4. Your site verifies the ticket (signature, expiry, issuer/audience binding, state, single-use claim) and sets **its own** auth cookies for its own domain. No shared cookies, no cookie trickery.
+
+Replay, login CSRF, and open redirects are closed by design — the [security guide](docs/guides/security.md) has the threat table.
+
+## Features
+
+- **Root-site or designated-site identity** per network; designating another network's site gives cross-network SSO with zero extra registration.
+- **Scopes**: super admins only (default), members of the destination site, or any network user — enforced at mint *and* at redemption, filterable.
+- **Session probe** with an origin allowlist and `no-store`: user data only for registered, trusting site origins.
+- **Network settings screen** (Settings → SSO) and **WP-CLI** (`wp pv-wpms-sso status`, `wp pv-wpms-sso rotate-key`).
+- **Key management**: one HMAC key per identity site, lazily generated, rotatable from the UI or CLI, overridable via a `PV_WPMS_SSO_KEY` wp-config constant.
+- No runtime dependencies; PHP 8.2+, WordPress 6.5+, network-activated.
+
+## Installation
+
+```sh
+composer require pluginverse/pv-wpms-sso
+```
+
+Or clone/download into `wp-content/plugins/pv-wpms-sso` and **Network Activate**. Then open **Network Admin → Settings → SSO**.
+
+### Configuring
+
+| Setting | Values | Default |
+|---|---|---|
+| Enable single sign-on | on / off | on |
+| Identity site | root site of this network, or a designated site ID (any site of the install) | root site |
+| Who can use SSO | super admins / destination-site members / any network user | super admins |
+| Button label | free text | "Sign in with {network name}" |
+
+For platforms that forbid database-stored secrets, define in wp-config:
+
+```php
+define( 'PV_WPMS_SSO_KEY', bin2hex( random_bytes( 32 ) ) ); // 64 hex chars
+```
+
+Cross-network (wp-multi-network, same database): in network B's settings, set the identity site to a site of network A. That's it — the client network's setting **is** the registration.
+
+## Hooks
+
+### Filters
+
+- `pv_wpms_sso/button_label` — the SSO button label (default: "Sign in with {network name}").
+- `pv_wpms_sso/user_may_sso` (bool, $user_id, $client_blog_id) — override the scope policy; applies at mint and redemption.
+- `pv_wpms_sso/allowed_redirect_hosts` — extra allowed redirect hosts (list of `host` / `host:port`), empty by default.
+
+### Actions
+
+- `pv_wpms_sso/sso_login` ($user_id, $blog_id, $ticket) — fires after a successful SSO login, before the final redirect.
+
+## Development
+
+```sh
+composer install        # dev tooling
+composer test-unit      # pure unit tests, no WordPress needed
+composer env:start      # wp-env multisite environment (Docker)
+composer test           # full suite (unit + integration) under wp-env
+composer phpstan        # static analysis, level 9
+```
+
+Design docs live in [`docs/`](docs/index.md): the living [spec](docs/specs/single-sign-on.md), [decision records](docs/decisions/), and the [security guide](docs/guides/security.md).
+
+## Roadmap
+
+- [ ] Browser end-to-end test of the two-domain redirect dance
+- [ ] `roles:` scope values (e.g., editors of the destination site)
+
+## License
+
+GPL-3.0-or-later with the Plugin Verse brand-protection additional permission — see [LICENSE.txt](LICENSE.txt).

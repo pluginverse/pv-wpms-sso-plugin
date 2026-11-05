@@ -1,7 +1,7 @@
 ---
 title: "Plan: Initial SSO plugin"
 description: Build and ship PV WPMS SSO v1 — signed-ticket SSO for domain-mapped multisite and same-database multi-network installs.
-status: in-progress
+status: done
 date: 2026-11-04
 size: architectural
 specs: ["single-sign-on"]
