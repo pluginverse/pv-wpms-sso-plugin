@@ -6,6 +6,8 @@ namespace PV\WpmsSso;
 
 use function add_query_arg;
 use function apply_filters;
+use function array_filter;
+use function array_values;
 use function do_action;
 use function get_blog_details;
 use function get_current_blog_id;
@@ -80,7 +82,7 @@ final class ClientFlow {
 	private static function start(): never {
 		$requestedRedirectTo = self::queryStringParam( 'redirect_to' );
 
-		$allowedRedirectTo = RedirectGuard::destinationAllowed( $requestedRedirectTo, self::currentSiteUrl() )
+		$allowedRedirectTo = RedirectGuard::destinationAllowed( $requestedRedirectTo, self::currentSiteUrl(), self::extraAllowedHosts() )
 			? $requestedRedirectTo
 			: '';
 
@@ -133,7 +135,7 @@ final class ClientFlow {
 		/** Fires after a successful SSO login, before the final redirect. */
 		do_action( 'pv_wpms_sso/sso_login', $ticket->userId, get_current_blog_id(), $ticket );
 
-		$destination = RedirectGuard::destinationAllowed( $redirectTo, self::currentSiteUrl() )
+		$destination = RedirectGuard::destinationAllowed( $redirectTo, self::currentSiteUrl(), self::extraAllowedHosts() )
 			? $redirectTo
 			: self::currentSiteUrl() . '/wp-admin/';
 
@@ -238,6 +240,19 @@ final class ClientFlow {
 		$value = isset( $_GET[ $paramName ] ) ? wp_unslash( $_GET[ $paramName ] ) : '';
 
 		return is_string( $value ) ? $value : '';
+	}
+
+	/**
+	 * Extra redirect hosts for this site, via the
+	 * pv_wpms_sso/allowed_redirect_hosts filter (empty by default).
+	 *
+	 * @return array<int, string>
+	 */
+	private static function extraAllowedHosts(): array {
+		/** Filter documenting the accepted shape: list of lowercase "host" or "host:port" values. */
+		$extraHosts = apply_filters( RedirectGuard::ALLOWED_HOSTS_FILTER, [] );
+
+		return array_values( array_filter( $extraHosts, 'is_string' ) );
 	}
 
 	private static function cookieStringParam( string $cookieName ): string {
