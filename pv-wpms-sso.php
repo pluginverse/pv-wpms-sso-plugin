@@ -56,6 +56,7 @@ function class_autoloader( string $class ): void {
 	static $classMap = [
 		AuthorizeEndpoint::class => __DIR__ . '/src/AuthorizeEndpoint.php',
 		ClientFlow::class => __DIR__ . '/src/ClientFlow.php',
+		Commands::class => __DIR__ . '/src/Commands.php',
 		InvalidTicketException::class => __DIR__ . '/src/InvalidTicketException.php',
 		JtiTable::class => __DIR__ . '/src/JtiTable.php',
 		KeyStore::class => __DIR__ . '/src/KeyStore.php',
@@ -64,6 +65,7 @@ function class_autoloader( string $class ): void {
 		ScopePolicy::class => __DIR__ . '/src/ScopePolicy.php',
 		SessionEndpoint::class => __DIR__ . '/src/SessionEndpoint.php',
 		Settings::class => __DIR__ . '/src/Settings.php',
+		SettingsPage::class => __DIR__ . '/src/SettingsPage.php',
 		StateStore::class => __DIR__ . '/src/StateStore.php',
 		Ticket::class => __DIR__ . '/src/Ticket.php',
 		TicketSigner::class => __DIR__ . '/src/TicketSigner.php',
@@ -90,3 +92,8 @@ add_action( 'rest_api_init', [ SessionEndpoint::class, 'registerRoutes' ] );
 add_action( 'login_init', [ ClientFlow::class, 'handleRequest' ] );
 add_action( 'login_footer', [ LoginScreen::class, 'render' ] );
 add_filter( 'login_message', [ LoginScreen::class, 'filterLoginMessage' ] );
+add_action( 'network_admin_menu', [ SettingsPage::class, 'register' ] );
+
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	\WP_CLI::add_command( 'pv-wpms-sso', '\PV\WpmsSso\Commands' );
+}

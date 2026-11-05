@@ -20,6 +20,8 @@ Network and super admins of domain-mapped multisite installs must re-enter crede
 - The login screen probes the IdP's `GET /wp-json/pv-wpms-sso/v1/session` (credentialed fetch) and, when a session in scope exists, personalizes the button to "Continue as {display name}" with the user's avatar. The endpoint answers with data only for `Origin` values that resolve to a registered site whose network designates this site as IdP; it is `no-store`.
 - Scope (`pv_wpms_sso.scope` of the destination network, decision 0004): `super_admins` (default — IdP checks `is_super_admin()` in the IdP network context; redemption re-checks the destination network's super-admin list), `site_members` (member of the destination site or super admin), `network_users` (any existing user). The `pv_wpms_sso/user_may_sso` filter overrides the policy and applies at mint and redemption.
 - The signing key is one HMAC key per IdP site: autoload-off blog option `pv_wpms_sso_key`, generated lazily, readable by every network of the database; a `PV_WPMS_SSO_KEY` wp-config constant (64 hex chars) overrides it everywhere.
+- Network admins configure everything under **Settings → SSO** (`settings.php` submenu, capability `manage_network_options`): enable/disable, identity site (root of this network or a designated site ID — any site of the install, so another network's site enables cross-network SSO), scope, button label, and key rotation (with a confirmation; unavailable when the key comes from the constant).
+- WP-CLI exposes `wp pv-wpms-sso status [--network_id=]` (configuration, resolved IdP site, key fingerprint) and `wp pv-wpms-sso rotate-key [--idp_blog_id=]`.
 
 ## Acceptance criteria
 
@@ -30,6 +32,7 @@ Network and super admins of domain-mapped multisite installs must re-enter crede
 - Authorize mints an audience-bound ticket for a super admin, sends anonymous users to the IdP login, denies out-of-scope users, and rejects unconfigured clients (`tests/Integration/SsoFlowTest.php`)
 - Session probe answers only for registered, trusting origins (`tests/Integration/SsoFlowTest.php`)
 - Ticket redemption round trip, replay rejection, foreign audience rejection; state single-use and cookie binding; jti single-use claim (`tests/Integration/SsoFlowTest.php`)
+- Key generation is lazy, stable, and rotatable; unusable designated IdP falls back to the network's main site (`tests/Integration/KeyStoreAndSettingsTest.php`)
 
 ## Non-goals
 

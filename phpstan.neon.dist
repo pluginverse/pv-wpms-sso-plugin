@@ -3,3 +3,5 @@ parameters:
     paths:
         - src/
         - pv-wpms-sso.php
+    scanDirectories:
+        - vendor/php-stubs/wp-cli-stubs

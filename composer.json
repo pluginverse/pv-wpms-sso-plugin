@@ -33,6 +33,7 @@
         }
     },
     "require-dev": {
+        "php-stubs/wp-cli-stubs": "^2.12",
         "phpstan/extension-installer": "^1.0",
         "phpstan/phpstan": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0",
