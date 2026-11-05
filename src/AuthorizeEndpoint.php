@@ -6,16 +6,10 @@ namespace PV\WpmsSso;
 
 use function add_query_arg;
 use function bin2hex;
-use function get_avatar_url;
-use function get_current_blog_id;
 use function get_current_user_id;
-use function get_site_url;
-use function get_userdata;
-use function random_bytes;
 use function rawurlencode;
 use function register_rest_route;
 use function rest_url;
-use function time;
 use function wp_login_url;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -79,43 +73,10 @@ final class AuthorizeEndpoint {
 			return self::redirectToClientLogin( $clientBlogId, $state, self::ERROR_ACCESS_DENIED );
 		}
 
-		return self::issueTicketRedirect( $userId, $clientBlogId, $state );
-	}
-
-	private static function issueTicketRedirect( int $userId, int $clientBlogId, string $state ): WP_REST_Response {
-		$user = get_userdata( $userId );
-		if ( false === $user ) {
+		$callbackUrl = TicketIssuer::issueTicketCallbackUrl( $userId, $clientBlogId, $state );
+		if ( '' === $callbackUrl ) {
 			return self::redirectToClientLogin( $clientBlogId, $state, self::ERROR_SERVER_ERROR );
 		}
-
-		$avatarUrl = get_avatar_url( $user->ID );
-		$issuedAt  = time();
-
-		$ticket = new Ticket(
-			issuerBlogId: get_current_blog_id(),
-			audienceBlogId: $clientBlogId,
-			userId: $userId,
-			userLogin: $user->user_login,
-			userEmail: $user->user_email,
-			displayName: $user->display_name,
-			avatarUrl: is_string( $avatarUrl ) ? $avatarUrl : '',
-			state: $state,
-			ticketId: bin2hex( random_bytes( 16 ) ),
-			issuedAt: $issuedAt,
-			expiresAt: $issuedAt + TicketSigner::TICKET_TTL_SECONDS,
-		);
-
-		$signingKey = KeyStore::getForBlog( get_current_blog_id() );
-		$token      = TicketSigner::issue( $ticket, $signingKey );
-
-		$callbackUrl = add_query_arg(
-			[
-				ClientFlow::QUERY_PARAM => ClientFlow::ACTION_CALLBACK,
-				'state'                 => $state,
-				'ticket'                => $token,
-			],
-			self::clientLoginUrl( $clientBlogId )
-		);
 
 		return self::redirectResponse( $callbackUrl );
 	}

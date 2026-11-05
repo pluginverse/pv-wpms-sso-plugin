@@ -62,12 +62,14 @@ function class_autoloader( string $class ): void {
 		KeyStore::class => __DIR__ . '/src/KeyStore.php',
 		LoginScreen::class => __DIR__ . '/src/LoginScreen.php',
 		RedirectGuard::class => __DIR__ . '/src/RedirectGuard.php',
+		SamlSettings::class => __DIR__ . '/src/SamlSettings.php',
 		ScopePolicy::class => __DIR__ . '/src/ScopePolicy.php',
 		SessionEndpoint::class => __DIR__ . '/src/SessionEndpoint.php',
 		Settings::class => __DIR__ . '/src/Settings.php',
 		SettingsPage::class => __DIR__ . '/src/SettingsPage.php',
 		StateStore::class => __DIR__ . '/src/StateStore.php',
 		Ticket::class => __DIR__ . '/src/Ticket.php',
+		TicketIssuer::class => __DIR__ . '/src/TicketIssuer.php',
 		TicketSigner::class => __DIR__ . '/src/TicketSigner.php',
 		TrustPolicy::class => __DIR__ . '/src/TrustPolicy.php',
 	];
@@ -78,6 +80,20 @@ function class_autoloader( string $class ): void {
 }
 
 spl_autoload_register( '\PV\WpmsSso\class_autoloader' );
+
+/*
+ * Composer runtime autoloader (onelogin/php-saml for external SSO).
+ * The production build ships vendor/; a source checkout without it keeps
+ * working — SAML features no-op via saml_library_available().
+ */
+$pv_wpms_sso_composer_autoload = __DIR__ . '/vendor/autoload.php';
+if ( is_readable( $pv_wpms_sso_composer_autoload ) ) {
+	require_once $pv_wpms_sso_composer_autoload;
+}
+
+function saml_library_available(): bool {
+	return class_exists( '\OneLogin\Saml2\Settings' );
+}
 
 function load_plugin_translations(): void {
 	load_plugin_textdomain( 'pv-wpms-sso', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
