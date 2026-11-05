@@ -22,6 +22,7 @@ Replay, login CSRF, and open redirects are closed by design — the [security gu
 - **Root-site or designated-site identity** per network; designating another network's site gives cross-network SSO with zero extra registration.
 - **Scopes**: super admins only (default), members of the destination site, or any network user — enforced at mint *and* at redemption, filterable.
 - **Session probe** with an origin allowlist and `no-store`: user data only for registered, trusting site origins.
+- **External SSO via SAML 2.0** (OneLogin, Okta, any SAML IdP): one more button on every login screen, terminating at the identity site and continuing through the same ticket flow. Email-based user mapping with opt-in auto-provisioning. See [External SSO (SAML)](#external-sso-saml).
 - **Network settings screen** (Settings → SSO) and **WP-CLI** (`wp pv-wpms-sso status`, `wp pv-wpms-sso rotate-key`).
 - **Key management**: one HMAC key per identity site, lazily generated, rotatable from the UI or CLI, overridable via a `PV_WPMS_SSO_KEY` wp-config constant.
 - No runtime dependencies; PHP 8.2+, WordPress 6.5+, network-activated.
@@ -51,6 +52,18 @@ define( 'PV_WPMS_SSO_KEY', bin2hex( random_bytes( 32 ) ) ); // 64 hex chars
 
 Cross-network (wp-multi-network, same database): in network B's settings, set the identity site to a site of network A. That's it — the client network's setting **is** the registration.
 
+## External SSO (SAML)
+
+When your users live in OneLogin (or any SAML 2.0 IdP), the identity site becomes the SAML service provider — one IdP application per network, one button on every login screen. A user with a live OneLogin session clicks through with no prompt anywhere; the assertion terminates at the identity site and the ticket flow carries them into the site they asked for.
+
+Setup, under **Network Admin → Settings → SSO → External single sign-on (SAML)**:
+
+1. Enable it and paste the three IdP application values (entity ID, single sign-on URL, X.509 certificate).
+2. Copy the shown **metadata URL** and **ACS URL** into the OneLogin application (SAML 2.0 connector). Set the NameID to email and keep the default *Sign SAML Response* (message-signed, RSA-SHA256).
+3. Pick a button label (default "Sign in with OneLogin") and decide whether unknown emails may auto-provision network users (off by default).
+
+Users signing in through SAML pass the same destination-network scope as everyone else — set **Who can use single sign-on** to `network_users` or `site_members` when the IdP is the front door.
+
 ## Hooks
 
 ### Filters
@@ -62,6 +75,8 @@ Cross-network (wp-multi-network, same database): in network B's settings, set th
 ### Actions
 
 - `pv_wpms_sso/sso_login` ($user_id, $blog_id, $ticket) — fires after a successful SSO login, before the final redirect.
+- `pv_wpms_sso/saml_login` ($user_id, $blog_id) — fires after a successful SAML login on the identity site.
+- `pv_wpms_sso/saml_validation_failed` ($reason, $current_user_id) — validation failure detail for admin logging; never shown to users.
 
 ## Development
 
@@ -79,7 +94,8 @@ Design docs live in [`docs/`](docs/index.md): the living [spec](docs/specs/singl
 
 - [ ] Browser end-to-end test of the two-domain redirect dance
 - [ ] `roles:` scope values (e.g., editors of the destination site)
+- [ ] Multiple SAML IdPs per network
 
 ## License
 
-GPL-3.0-or-later with the Plugin Verse brand-protection additional permission — see [LICENSE.txt](LICENSE.txt).
+GPL-3.0-or-later with the Plugin Verse brand-protection additional permission — see [LICENSE.txt](LICENSE.txt). The built package bundles [onelogin/php-saml](https://github.com/SAML-Toolkits/php-saml) (MIT) and its dependencies.

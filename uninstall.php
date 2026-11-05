@@ -14,11 +14,12 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 global $wpdb;
 
-// Per-network settings.
+// Per-network settings (network SSO + SAML application).
 $networks = get_networks();
 if ( is_array( $networks ) ) {
 	foreach ( $networks as $network ) {
 		delete_network_option( (int) $network->id, 'pv_wpms_sso' );
+		delete_network_option( (int) $network->id, 'pv_wpms_sso_saml' );
 	}
 }
 
@@ -32,7 +33,9 @@ foreach ( $optionTables as $optionTable ) {
 		"DELETE FROM `{$optionTable}`
 		 WHERE option_name = 'pv_wpms_sso_key'
 		    OR option_name LIKE '\_transient\_pv\_wpms\_sso\_state\_%'
-		    OR option_name LIKE '\_transient\_timeout\_pv\_wpms\_sso\_state\_%'"
+		    OR option_name LIKE '\_transient\_timeout\_pv\_wpms\_sso\_state\_%'
+		    OR option_name LIKE '\_transient\_pv\_wpms\_sso\_saml\_req\_%'
+		    OR option_name LIKE '\_transient\_timeout\_pv\_wpms\_sso\_saml\_req\_%'"
 	);
 }
 

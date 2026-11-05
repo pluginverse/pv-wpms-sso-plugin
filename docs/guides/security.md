@@ -22,10 +22,13 @@ description: Trust model, key handling, and the specific attacks this plugin mus
 |---|---|
 | Ticket replay | 60-second `exp`, atomic `INSERT` claim of `jti` in the global `pv_wpms_sso_jti` table (unique PK); a claimed ticket never verifies twice |
 | Ticket forgery | HMAC-SHA256 over the payload with the IdP key; constant-time comparison |
-| Login CSRF / session fixation | Random 128-bit `state` must match the destination's transient *and* its HttpOnly `pv_wpms_sso_state` cookie; a fresh session cookie is set after redemption (`wp_set_auth_cookie`), never copied from the IdP |
+| SAML assertion forgery | php-saml strict-mode XML-DSig validation against the configured IdP certificate (message-signed, RSA-SHA256); audience, destination, and timestamp windows enforced |
+| SAML replay | every AuthnRequest ID stored in a 10-minute transient; a response is honored only when its `InResponseTo` resolves to a stored, unconsumed request, deleted on read; the ticket JTI claim then closes the client leg |
+| Login CSRF / session fixation | Random 128-bit `state` must match the destination's transient *and* its HttpOnly `pv_wpms_sso_state` cookie; the SAML client hop reuses the same binding; a fresh session cookie is set after redemption (`wp_set_auth_cookie`), never copied from the IdP |
 | Open redirect | Every redirect target (`redirect_to`, IdP callback URLs) is validated against the destination site's own URL host; extra hosts only via the `pv_wpms_sso/allowed_redirect_hosts` filter; final hop is `wp_safe_redirect` |
 | Privilege escalation | Scope checked at mint *and* at redemption; `aud` must equal the destination blog ID and `iss` the configured IdP; the `user_may_sso` filter applies on both sides |
 | Information leak via probe | `GET /wp-json/pv-wpms-sso/v1/session` answers `{authenticated:false}` unless the `Origin` matches a registered site domain; user details only for credentialed, in-scope, allowlisted origins; `Cache-Control: no-store` |
+| Unauthorized provisioning | Auto-provisioning is off by default; the identity site's network opts in and picks the role; provisioned users still face the destination network's SSO scope |
 | Timing side channels | `hash_equals` for signatures; opaque errors ("access denied") on login screens rather than which check failed |
 
 ## Reporting

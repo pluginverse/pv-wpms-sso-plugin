@@ -47,6 +47,16 @@ final class Commands {
 		WP_CLI::log( sprintf( '  button label: %s', '' !== $settings['button_label'] ? $settings['button_label'] : '(default: "Sign in with {network name}")' ) );
 		WP_CLI::log( sprintf( '  identity site: blog %d (%s)', $idpBlogId, get_site_url( $idpBlogId ) ) );
 		WP_CLI::log( sprintf( '  signing key: %s%s', $keyFingerprint, defined( KeyStore::CONSTANT_NAME ) ? ' (from wp-config constant)' : '' ) );
+
+		$idpSite      = get_blog_details( $idpBlogId );
+		$idpNetworkId = $idpSite instanceof \WP_Site ? (int) $idpSite->site_id : $networkId;
+		$samlSettings = \PV\WpmsSso\SamlSettings::forNetwork( $idpNetworkId );
+
+		WP_CLI::log( sprintf( '  saml: %s%s', $samlSettings['enabled'] ? 'enabled' : 'disabled', \PV\WpmsSso\SamlSettings::isConfigured( $idpNetworkId ) ? '' : ' (incomplete configuration)' ) );
+		if ( '' !== $samlSettings['idp_entity_id'] ) {
+			WP_CLI::log( sprintf( '    idp entity: %s', $samlSettings['idp_entity_id'] ) );
+		}
+		WP_CLI::log( sprintf( '    auto-provision: %s', $samlSettings['auto_provision'] ? 'on (' . $samlSettings['default_role'] . ')' : 'off' ) );
 	}
 
 	/**
