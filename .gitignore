@@ -5,3 +5,6 @@
 .vscode/
 *.code-workspace
 output.log
+
+/test-results/
+/playwright-report/

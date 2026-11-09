@@ -152,7 +152,7 @@ final class SamlProvider {
 	 * the dashboard (IdP-local start). The wrapper sets the cookies and sends
 	 * the redirect.
 	 *
-	 * @return array{user_id: int, redirect_url: string} user_id 0 with an
+	 * @return array{user_id: int, redirect_url: string, client_blog_id?: int} user_id 0 with an
 	 *         error-carrying redirect_url on any failure.
 	 */
 	public static function processSamlResponse( string $base64Response ): array {
@@ -212,6 +212,7 @@ final class SamlProvider {
 			if ( 0 === $clientNetworkId || ! TrustPolicy::userPassesClientScope( $userId, $storedClientBlogId, $clientNetworkId ) ) {
 				return [
 					'user_id'      => 0,
+					'client_blog_id' => $storedClientBlogId,
 					'redirect_url' => self::loginErrorUrl(
 						self::clientLoginUrl( $storedClientBlogId ),
 						AuthorizeEndpoint::ERROR_ACCESS_DENIED
@@ -221,7 +222,7 @@ final class SamlProvider {
 
 			$callbackUrl = TicketIssuer::issueTicketCallbackUrl( $userId, $storedClientBlogId, $storedState );
 			if ( '' !== $callbackUrl ) {
-				return [ 'user_id' => $userId, 'redirect_url' => $callbackUrl ];
+				return [ 'user_id' => $userId, 'redirect_url' => $callbackUrl, 'client_blog_id' => $storedClientBlogId ];
 			}
 		}
 
@@ -245,6 +246,9 @@ final class SamlProvider {
 			wp_set_auth_cookie( $result['user_id'], true, is_ssl() );
 		}
 
+		if ( isset( $result['client_blog_id'] ) ) {
+			RedirectGuard::allowSiteRedirect( $result['redirect_url'], $result['client_blog_id'] );
+		}
 		wp_safe_redirect( $result['redirect_url'] );
 		exit;
 	}

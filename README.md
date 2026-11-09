@@ -17,15 +17,21 @@ WordPress auth cookies are host-scoped. On a network of domain-mapped sites, a s
 
 Replay, login CSRF, and open redirects are closed by design — the [security guide](docs/guides/security.md) has the threat table.
 
+A completed local login on a participating mapped site also establishes the identity-site session through a browser-bound hand-off, then returns you to your original site. Later, use the destination's SSO button without repeating that login. The hand-off preserves local password/2FA handling and never grants a site role. A conflicting account already signed into the identity site is refused rather than replaced.
+
+For membership-limited access, configure **Who can use SSO** as **Members of the destination site** (`site_members`) on each network. One-site users stay local; multi-site users can reach their member sites; cross-network users need a role on the specific destination site. **Any account in the shared installation** (`network_users`) deliberately grants broader access and does not check network membership. The default remains super admins only.
+
+Existing local sessions that predate a hand-off are not discovered across domains. Complete a participating local login or sign into the identity site first. Two-factor providers that bypass the final WordPress `login_redirect` filter need a provider-specific integration.
+
 ## Features
 
 - **Root-site or designated-site identity** per network; designating another network's site gives cross-network SSO with zero extra registration.
-- **Scopes**: super admins only (default), members of the destination site, or any network user — enforced at mint *and* at redemption, filterable.
+- **Scopes**: super admins only (default), members of the destination site, or any account in the shared installation — enforced at mint *and* at redemption, filterable.
 - **Session probe** with an origin allowlist and `no-store`: user data only for registered, trusting site origins.
 - **External SSO via SAML 2.0** (OneLogin, Okta, any SAML IdP): one more button on every login screen, terminating at the identity site and continuing through the same ticket flow. Email-based user mapping with opt-in auto-provisioning. See [External SSO (SAML)](#external-sso-saml).
 - **Network settings screen** (Settings → SSO) and **WP-CLI** (`wp pv-wpms-sso status`, `wp pv-wpms-sso rotate-key`).
 - **Key management**: one HMAC key per identity site, lazily generated, rotatable from the UI or CLI, overridable via a `PV_WPMS_SSO_KEY` wp-config constant.
-- No runtime dependencies; PHP 8.2+, WordPress 6.5+, network-activated.
+- Bundled php-saml for external SSO; PHP 8.2+, WordPress 6.5+, network-activated. Test tooling is development-only.
 
 ## Installation
 
@@ -41,7 +47,7 @@ Or clone/download into `wp-content/plugins/pv-wpms-sso` and **Network Activate**
 |---|---|---|
 | Enable single sign-on | on / off | on |
 | Identity site | root site of this network, or a designated site ID (any site of the install) | root site |
-| Who can use SSO | super admins / destination-site members / any network user | super admins |
+| Who can use SSO | super admins / destination-site members / any account in the shared installation | super admins |
 | Button label | free text | "Sign in with {network name}" |
 
 For platforms that forbid database-stored secrets, define in wp-config:
@@ -86,13 +92,23 @@ composer test-unit      # pure unit tests, no WordPress needed
 composer env:start      # wp-env multisite environment (Docker)
 composer test           # full suite (unit + integration) under wp-env
 composer phpstan        # static analysis, level 9
+composer test-bdd        # executable user journeys in wp-env
+composer test-trace      # stable behavior ID validation
+npm ci
+npx playwright install chromium
+npm run browser:start   # separate, disposable mapped-domain environment
+npm run browser:seed
+npm run test:browser     # real HTTPS cookies, network routing, local test IdP
+npm run browser:stop
 ```
+
+Suite boundaries and provider limitations are documented in [Testing](docs/guides/testing.md).
 
 Design docs live in [`docs/`](docs/index.md): the living [spec](docs/specs/single-sign-on.md), [decision records](docs/decisions/), and the [security guide](docs/guides/security.md).
 
 ## Roadmap
 
-- [ ] Browser end-to-end test of the two-domain redirect dance
+- [x] Executable BDD plus HTTPS browser tests of mapped-domain and cross-network sign-in
 - [ ] `roles:` scope values (e.g., editors of the destination site)
 - [ ] Multiple SAML IdPs per network
 

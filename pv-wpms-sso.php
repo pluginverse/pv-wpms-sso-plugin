@@ -60,6 +60,7 @@ function class_autoloader( string $class ): void {
 		InvalidTicketException::class => __DIR__ . '/src/InvalidTicketException.php',
 		JtiTable::class => __DIR__ . '/src/JtiTable.php',
 		KeyStore::class => __DIR__ . '/src/KeyStore.php',
+		LocalSessionBridge::class => __DIR__ . '/src/LocalSessionBridge.php',
 		LoginScreen::class => __DIR__ . '/src/LoginScreen.php',
 		RedirectGuard::class => __DIR__ . '/src/RedirectGuard.php',
 		SamlFlow::class => __DIR__ . '/src/SamlFlow.php',
@@ -110,6 +111,8 @@ register_activation_hook( __FILE__, [ JtiTable::class, 'createTable' ] );
 add_action( 'rest_api_init', [ AuthorizeEndpoint::class, 'registerRoutes' ] );
 add_action( 'rest_api_init', [ SessionEndpoint::class, 'registerRoutes' ] );
 add_action( 'rest_api_init', [ SamlMetadata::class, 'registerRoutes' ] );
+add_action( 'login_init', [ LocalSessionBridge::class, 'handleRequest' ] );
+add_filter( 'login_redirect', [ LocalSessionBridge::class, 'filterLoginRedirect' ], 100, 3 );
 add_action( 'login_init', [ ClientFlow::class, 'handleRequest' ] );
 add_action( 'login_init', [ SamlFlow::class, 'handleRequest' ] );
 add_action( 'login_footer', [ LoginScreen::class, 'render' ] );

@@ -7,7 +7,7 @@ PV WPMS SSO (Plugin Verse WordPress Multisite Single Sign On) is a network-activ
 ## Quick start
 
 ```sh
-composer install        # dev tooling (phpunit, phpstan); no runtime dependencies
+composer install        # dev tooling plus bundled php-saml runtime dependency
 composer env:start      # wp-env docker multisite dev env (needs Docker)
 composer test           # PHPUnit via wp-env
 composer phpstan        # static analysis, level 9
@@ -45,7 +45,7 @@ Templates: `_template.md` in `docs/specs/`, `docs/decisions/`, and `docs/plans/`
 Before editing, check whether the task touches one of these areas and read the guide first (a TODO line is a guide not written yet):
 
 - Security/auth: `docs/guides/security.md` (trust model, key handling, attack table)
-- TODO Testing (`docs/guides/testing.md`): unit vs wp-phpunit integration split, wp-env fixtures, when to add which — write it when the integration suite outgrows its bootstrap
+- Testing: `docs/guides/testing.md` — PHPUnit, executable BDD, behavior IDs, and isolated HTTPS browser fixtures.
 
 ## Skills
 

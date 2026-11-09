@@ -63,7 +63,7 @@ final class AuthorizeEndpoint {
 			return self::redirectToClientLogin( $clientBlogId, $state, self::ERROR_UNTRUSTED_CLIENT );
 		}
 
-		$userId = get_current_user_id();
+		$userId = TrustPolicy::currentSessionUserId();
 		if ( 0 === $userId ) {
 			return self::redirectToIdpLogin( $clientBlogId, $state );
 		}

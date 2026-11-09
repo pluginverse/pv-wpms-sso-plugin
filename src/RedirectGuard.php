@@ -21,6 +21,28 @@ use function strtolower;
 final class RedirectGuard {
 
 	public const ALLOWED_HOSTS_FILTER = 'pv_wpms_sso/allowed_redirect_hosts';
+	private static string $registeredRedirectHost = '';
+
+	/** Authorize one generated cross-domain hop to a registered site's URL. */
+	public static function allowSiteRedirect( string $destinationUrl, int $destinationBlogId ): bool {
+		if ( ! self::urlMatchesSiteHost( $destinationUrl, get_site_url( $destinationBlogId ) ) ) {
+			return false;
+		}
+		self::$registeredRedirectHost = (string) wp_parse_url( $destinationUrl, PHP_URL_HOST );
+		add_filter( 'allowed_redirect_hosts', [ self::class, 'allowRegisteredRedirectHost' ] );
+		return true;
+	}
+
+	/**
+	 * @param array<string> $hosts
+	 * @return array<string>
+	 */
+	public static function allowRegisteredRedirectHost( array $hosts ): array {
+		if ( '' !== self::$registeredRedirectHost ) {
+			$hosts[] = self::$registeredRedirectHost;
+		}
+		return $hosts;
+	}
 
 	/**
 	 * Pure check: is $destinationUrl a safe post-login target for a site whose

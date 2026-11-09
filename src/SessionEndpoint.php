@@ -63,7 +63,7 @@ final class SessionEndpoint {
 			return $response;
 		}
 
-		$userId = get_current_user_id();
+		$userId = TrustPolicy::currentSessionUserId();
 		if ( 0 === $userId || ! TrustPolicy::userPassesClientScope( $userId, $clientBlogId, $clientNetworkId ) ) {
 			return $response;
 		}
@@ -85,9 +85,8 @@ final class SessionEndpoint {
 	}
 
 	/**
-	 * Resolve an Origin header to a registered blog by host. Subdirectory
-	 * installs share a host (and its cookies), so host resolution is enough
-	 * for the domain-mapped deployments this plugin exists for.
+	 * Resolve the complete Origin against a registered site URL. Hosts, ports,
+	 * and schemes must agree; subdirectory sites share one origin and cookies.
 	 */
 	private static function blogIdForOrigin( string $originHeader ): int {
 		$originParts = parse_url( $originHeader );
@@ -99,16 +98,26 @@ final class SessionEndpoint {
 			return 0;
 		}
 
+		$host = strtolower( (string) $originParts['host'] );
+		$hostWithPort = isset( $originParts['port'] ) ? $host . ':' . $originParts['port'] : $host;
 		$siteIds = get_sites(
 			[
-				'domain' => strtolower( (string) $originParts['host'] ),
-				'number' => 1,
+				'domain__in' => array_unique( [ $host, $hostWithPort ] ),
+				'number' => 0,
 				'fields' => 'ids',
 			]
 		);
 
-		$siteId = $siteIds[0] ?? false;
-
-		return false === $siteId ? 0 : (int) $siteId;
+		foreach ( $siteIds as $siteId ) {
+			$siteUrl = get_blog_option( (int) $siteId, 'siteurl' );
+			if ( ! is_string( $siteUrl ) ) {
+				continue;
+			}
+			if ( RedirectGuard::urlMatchesSiteHost( $originHeader, $siteUrl )
+				&& strtolower( $originParts['scheme'] ) === wp_parse_url( $siteUrl, PHP_URL_SCHEME ) ) {
+				return (int) $siteId;
+			}
+		}
+		return 0;
 	}
 }

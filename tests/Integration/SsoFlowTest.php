@@ -60,6 +60,20 @@ final class SsoFlowTest extends WP_UnitTestCase {
 		wp_set_current_user( $userId );
 	}
 
+	/** @group SSO-001 */
+	public function testAuthorizeRecognizesBrowserCookieOnNonceLessTopLevelRedirect(): void {
+		$this->becomeIdpWithUser( $this->superAdminUserId );
+		$_COOKIE[ LOGGED_IN_COOKIE ] = wp_generate_auth_cookie( $this->superAdminUserId, time() + 600, 'logged_in' );
+		$GLOBALS['wp_rest_auth_cookie'] = true;
+		unset( $_REQUEST['_wpnonce'], $_SERVER['HTTP_X_WP_NONCE'] );
+		rest_cookie_check_errors( null );
+		self::assertSame( 0, get_current_user_id(), 'WordPress REST deliberately clears nonce-less cookie authentication.' );
+		$response = AuthorizeEndpoint::handleRequest( $this->authorizeRequest( 'browser-state' ) );
+		self::assertStringContainsString( 'ticket=', $response->get_headers()['Location'] );
+		unset( $_COOKIE[ LOGGED_IN_COOKIE ], $GLOBALS['wp_rest_auth_cookie'] );
+		restore_current_blog();
+	}
+
 	public function testAuthorizeMintsTicketForSuperAdmin(): void {
 		$this->becomeIdpWithUser( $this->superAdminUserId );
 
@@ -155,6 +169,32 @@ final class SsoFlowTest extends WP_UnitTestCase {
 		self::assertFalse( (bool) $data['authenticated'] );
 
 		restore_current_blog();
+	}
+
+	/**
+	 * @group SSO-001
+	 * @dataProvider probeOrigins
+	 */
+	public function testProbeChecksCompleteRegisteredOrigin( string $origin, bool $authenticated, bool $standardPort = false ): void {
+		update_blog_details( $this->clientBlogId, [ 'domain' => $standardPort ? 'mapped.test' : 'mapped.test:9443' ] );
+		update_blog_option( $this->clientBlogId, 'siteurl', $standardPort ? 'https://mapped.test' : 'https://mapped.test:9443' );
+		$this->becomeIdpWithUser( $this->superAdminUserId );
+		$request = new WP_REST_Request( 'GET', '/pv-wpms-sso/v1/session' );
+		$request->set_header( 'Origin', $origin );
+		$data = SessionEndpoint::handleRequest( $request )->get_data();
+		self::assertSame( $authenticated, $data['authenticated'] );
+		restore_current_blog();
+	}
+
+	public static function probeOrigins(): array {
+		return [
+			'mapped nonstandard HTTPS port' => [ 'https://mapped.test:9443', true ],
+			'wrong port' => [ 'https://mapped.test:9444', false ],
+			'wrong scheme' => [ 'http://mapped.test:9443', false ],
+			'standard origin' => [ 'https://mapped.test', true, true ],
+			'standard origin wrong scheme' => [ 'http://mapped.test', false, true ],
+			'standard origin wrong port' => [ 'https://mapped.test:9444', false, true ],
+		];
 	}
 
 	public function testVerifyAndConsumeTicketRoundTripAndReplay(): void {

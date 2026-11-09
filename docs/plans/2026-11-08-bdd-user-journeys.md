@@ -1,7 +1,7 @@
 ---
 title: "Plan: Test user journeys and bridge completed local logins"
 description: "Add executable BDD for mapped-domain and multi-network access, then implement the missing session hand-off from a local login to the identity site."
-status: approved
+status: done
 date: 2026-11-08
 size: architectural
 specs: ["single-sign-on", "saml-sso"]
@@ -210,12 +210,12 @@ Decision 0004 remains authoritative for configurable scopes; decision 0005 remai
 
 **Tech Stack:** PHP 8.2, WordPress multisite, Behat 4, PHPUnit 9, Playwright.
 
-- [ ] Add `behat.dist.php`, `tests/Behavior/`, `bin/behavior.sh`, and `bin/trace_ids.py`; run `composer test-bdd` and confirm the local-login redirect assertion fails before runtime changes.
-- [ ] Add `src/LocalSessionBridge.php` with `filterLoginRedirect`, `begin`, `prove`, `complete`, and the static login handler. Register hooks in `pv-wpms-sso.php`. Test real source-cookie validation and separate the proof signing key from destination tickets using HMAC key derivation.
-- [ ] Extend `tests/Integration/` for invalid state, expired state, replay, trust removal, cookie mismatch, wrong audience/purpose, and account conflict. Run `composer test -- --group SSO-001` before and after implementation.
-- [ ] Add mapped-domain and actual multi-network BDD fixtures; use `site_members` and assert issuance and redemption independently. Link PHPUnit groups to stable behavior IDs.
-- [ ] Add `tests/Browser/` with an isolated wp-env config, local HTTPS proxy, reserved `.test` origins, and a test-only second factor; run `npm run test:browser` to prove cookie and redirect behavior.
-- [ ] Update both specs, security/testing guides, README, vision, changelog, and CI; run all suites and trace validation, review the diff, and commit the complete change.
+- [x] Add `behat.dist.php`, `tests/Behavior/`, `bin/behavior.sh`, and `bin/trace_ids.py`; run `composer test-bdd` and confirm the local-login redirect assertion fails before runtime changes.
+- [x] Add `src/LocalSessionBridge.php` with `filterLoginRedirect`, `begin`, `prove`, `complete`, and the static login handler. Register hooks in `pv-wpms-sso.php`. Test real source-cookie validation and separate the proof signing key from destination tickets using HMAC key derivation.
+- [x] Extend `tests/Integration/` for invalid state, expired state, replay, trust removal, cookie mismatch, wrong audience/purpose, and account conflict. Run `composer test -- --group SSO-001` before and after implementation.
+- [x] Add mapped-domain and actual multi-network BDD fixtures; use `site_members` and assert issuance and redemption independently. Link PHPUnit groups to stable behavior IDs.
+- [x] Add `tests/Browser/` with an isolated wp-env config, local HTTPS proxy, reserved `.test` origins, and a test-only second factor; run `npm run test:browser` to prove cookie and redirect behavior.
+- [x] Update both specs, security/testing guides, README, vision, changelog, and CI; run all suites and trace validation, review the diff, and commit the complete change.
 
 
 1. Review this design; create a feature branch and commit the approved plan and new decision records before writing test or runtime code.
@@ -226,7 +226,30 @@ Decision 0004 remains authoritative for configurable scopes; decision 0005 remai
 6. Add the focused HTTPS browser flow and test-only second-factor fixture; verify separate cookies and actual host/network routing. Wire BDD and trace checks into CI, excluding test tooling from built packages.
 7. Apply spec, guide, product, and changelog updates with their code. Run all acceptance checks, inspect the complete diff, and report residual limitations.
 
+## Rulings
+
+- [REST session handling] Browser redirects have no WordPress REST nonce, so core clears cookie authentication. Only the SSO authorize/probe handlers read a validated logged-in cookie after that reset; no global REST authentication override. Cost if wrong: high, authentication boundary; covered by a core-reset regression and the HTTPS flow.
+- [SAML return] Preserve the stored client site ID in the internal SAML result and allow its generated callback host through `RedirectGuard` before `wp_safe_redirect`. Reject foreign hosts. Cost if wrong: high, redirect trust; covered by mapped-domain and foreign-host regressions plus browser SAML.
+- [Empty destination] An empty stored return path must select the destination dashboard, not attempt an empty redirect and exit with a blank response. Cost if wrong: medium, default sign-ins fail; covered by the browser OneLogin scenario.
+- [Inactive sites] Archived/deleted/spam sites do not qualify as trusted sources or clients, including after proof issuance. Cost if wrong: high, disabled trust remains usable; covered by an archived-source regression.
+- [Browser isolation] Keep WordPress's normal network constants; core resolves the requested blog and then uses that blog's network. Do not change the normal development database or system DNS. Host-scoped cookies and separate HTTPS origins are tested with the disposable configuration.
+
 ## Deferred
 
 - Live OneLogin acceptance requires a real tenant/application and is separate from automated signed-response validation.
 - A browser that was already logged into a spoke before this feature existed does not automatically reveal that domain's cookie to the hub. The new flow establishes the hub session after a participating local login; support for pre-existing unbridged sessions would require an additional explicit source-selection or migration flow.
+
+## Verification (2026-11-09)
+
+- `composer phpstan`: passed at level 9.
+- `composer test-unit`: 36 tests, 53 assertions passed on the host.
+- `composer test`: 96 tests, 221 assertions passed in Docker on PHP 8.2.
+- `composer test-bdd -- --format=progress`: 11 scenarios, 50 steps passed.
+- `composer test-trace`: 11 unique behavior IDs; no trace errors or warnings.
+- An unmatched BDD tag selection correctly exits 1; the normal scenario run still passes.
+- `npm run test:browser`: all seven Chromium journeys passed against separate HTTPS origins and two real network records. This includes the local signed-response OneLogin fixture.
+- `composer validate --strict` and `git diff --check`: passed.
+- Independent read-only code review found a subdirectory root-relative return-path defect. Added a failing regression, fixed origin-relative resolution, and verified it passes. No other concrete auth, membership, packaging, or CI defect was reported.
+- Browser testing found and drove fixes for nonce-less REST cookie lookup, SAML safe callback host allowance, and the empty destination fallback. Provider limitations and development-tool warnings are recorded in the testing guide.
+
+CI is configured to run the suites; hosted CI has not run because this branch has not been pushed. Production OneLogin tenant configuration and production two-factor provider compatibility remain deployment acceptance checks, not skipped automated checks.

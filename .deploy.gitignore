@@ -16,3 +16,10 @@ skills-lock.json
 phpunit.xml.dist
 phpstan.neon.dist
 output.log
+
+behat.dist.php
+package.json
+package-lock.json
+/node_modules/
+/test-results/
+/playwright-report/

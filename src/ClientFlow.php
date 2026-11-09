@@ -138,9 +138,6 @@ final class ClientFlow {
 			$errorCodeFromTicket = $ticket->get_error_code();
 			self::redirectToLoginWithError( is_string( $errorCodeFromTicket ) ? $errorCodeFromTicket : self::ERROR_INVALID_TICKET );
 		}
-		if ( ! self::userMayRedeemHere( $ticket->userId ) ) {
-			self::redirectToLoginWithError( self::ERROR_NOT_ALLOWED );
-		}
 
 		wp_set_current_user( $ticket->userId );
 		wp_set_auth_cookie( $ticket->userId, true, is_ssl() );
@@ -148,7 +145,7 @@ final class ClientFlow {
 		/** Fires after a successful SSO login, before the final redirect. */
 		do_action( 'pv_wpms_sso/sso_login', $ticket->userId, get_current_blog_id(), $ticket );
 
-		$destination = RedirectGuard::destinationAllowed( $redirectTo, self::currentSiteUrl(), self::extraAllowedHosts() )
+		$destination = '' !== $redirectTo && RedirectGuard::destinationAllowed( $redirectTo, self::currentSiteUrl(), self::extraAllowedHosts() )
 			? $redirectTo
 			: self::currentSiteUrl() . '/wp-admin/';
 
@@ -187,6 +184,10 @@ final class ClientFlow {
 
 		if ( ! JtiTable::claimTicketId( $ticket->ticketId, $ticket->expiresAt ) ) {
 			return new WP_Error( self::ERROR_REPLAYED_TICKET, 'Ticket was already used.' );
+		}
+
+		if ( ! self::userMayRedeemHere( $ticket->userId ) ) {
+			return new WP_Error( self::ERROR_NOT_ALLOWED, __( 'Destination access was refused.', 'pv-wpms-sso' ) );
 		}
 
 		return $ticket;
