@@ -1,6 +1,0 @@
-{
-  "phpVersion": "8.2",
-  "port": 8890,
-  "testsPort": 8891,
-  "plugins": [ "." ]
-}
