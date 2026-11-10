@@ -12,6 +12,7 @@ final class LocalSessionBridge {
 
 	public const TRANSIENT_PREFIX = 'pv_wpms_sso_bridge_';
 	public const STATE_COOKIE = 'pv_wpms_sso_bridge_state';
+	public const HAND_OFF_FILTER = 'pv_wpms_sso/hand_off_local_login';
 	private const LIFETIME_SECONDS = 600;
 
 	/**
@@ -33,6 +34,9 @@ final class LocalSessionBridge {
 			return $redirectTo;
 		}
 		$hubBlogId = ClientFlow::idpBlogIdForThisSite();
+		if ( ! self::userMayHandOff( $user, $sourceBlogId, $hubBlogId ) ) {
+			return $redirectTo;
+		}
 		$url = self::loginUrl( $hubBlogId, [
 			'pv_wpms_sso' => 'bridge_start',
 			'source_blog_id' => $sourceBlogId,
@@ -41,6 +45,35 @@ final class LocalSessionBridge {
 		] );
 		RedirectGuard::allowSiteRedirect( $url, $hubBlogId );
 		return $url;
+	}
+
+	/**
+	 * Decision 0011: only accounts that can plausibly reach another site leave
+	 * their site after a local login. Site-local users never depend on the hub.
+	 */
+	private static function userMayHandOff( WP_User $user, int $sourceBlogId, int $hubBlogId ): bool {
+		$eligible = self::isSuperAdminUnderHub( $user, $hubBlogId )
+			|| ( Settings::SCOPE_SUPER_ADMINS !== Settings::scope() && count( get_blogs_of_user( $user->ID ) ) > 1 );
+
+		/** Filter whether a completed local login is handed off to the identity site. */
+		return (bool) apply_filters( self::HAND_OFF_FILTER, $eligible, $user, $sourceBlogId );
+	}
+
+	/** Super admin status is per network: check every network that uses this hub. */
+	private static function isSuperAdminUnderHub( WP_User $user, int $hubBlogId ): bool {
+		if ( is_super_admin( $user->ID ) ) {
+			return true;
+		}
+		$networkIds = get_networks( [ 'fields' => 'ids' ] );
+		foreach ( is_array( $networkIds ) ? $networkIds : [] as $networkId ) {
+			$networkId = (int) $networkId;
+			$superAdminLogins = get_network_option( $networkId, 'site_admins', [] );
+			if ( is_array( $superAdminLogins ) && in_array( $user->user_login, $superAdminLogins, true )
+				&& Settings::isEnabled( $networkId ) && Settings::resolveIdpBlogId( $networkId ) === $hubBlogId ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

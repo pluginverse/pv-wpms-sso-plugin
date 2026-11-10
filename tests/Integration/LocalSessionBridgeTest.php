@@ -179,6 +179,7 @@ final class LocalSessionBridgeTest extends JourneyFixture {
 
 	public function testLoginRedirectKeepsEveryQueryArgumentOfTheReturnUrl(): void {
 		add_user_to_blog( $this->sites['Northcoast'], $this->users['Alex'], 'editor' );
+		add_user_to_blog( $this->sites['Southmountain'], $this->users['Alex'], 'editor' );
 		$this->enter( 'Northcoast' );
 		$returnTo = admin_url( 'edit.php?post_type=page&paged=2&user_id=999999&pv_wpms_sso=start' );
 		$arguments = $this->handOffArguments( 'Alex', $returnTo );
@@ -188,8 +189,10 @@ final class LocalSessionBridgeTest extends JourneyFixture {
 	}
 
 	public function testDefaultLandingKeepsCoreRuleForMembersWhoCannotEdit(): void {
-		add_user_to_blog( $this->sites['Northcoast'], $this->users['Casey'], 'subscriber' );
-		add_user_to_blog( $this->sites['Northcoast'], $this->users['Alex'], 'editor' );
+		foreach ( [ 'Northcoast', 'Southmountain' ] as $site ) {
+			add_user_to_blog( $this->sites[ $site ], $this->users['Casey'], 'subscriber' );
+			add_user_to_blog( $this->sites[ $site ], $this->users['Alex'], 'editor' );
+		}
 		$this->enter( 'Northcoast' );
 		self::assertSame( admin_url( 'profile.php' ), $this->handOffArguments( 'Casey', admin_url() )['return_to'] );
 		self::assertSame( admin_url(), $this->handOffArguments( 'Alex', admin_url() )['return_to'] );
@@ -204,6 +207,55 @@ final class LocalSessionBridgeTest extends JourneyFixture {
 		$this->enter( 'Northcoast', $this->users['Alex'] );
 		self::assertNull( LocalSessionBridge::filterLoginRedirect( null, null, get_userdata( $this->users['Alex'] ) ) );
 		self::assertSame( admin_url(), LocalSessionBridge::filterLoginRedirect( admin_url(), '', new WP_Error( 'failed' ) ) );
+	}
+
+	private function redirectAfterLogin( string $person ): string {
+		$this->enter( 'Northcoast', $this->users[ $person ] );
+		return LocalSessionBridge::filterLoginRedirect( admin_url(), '', get_userdata( $this->users[ $person ] ) );
+	}
+
+	/** @group SSO-009 */
+	public function testSiteLocalMemberIsNotSentToTheIdentitySite(): void {
+		add_user_to_blog( $this->sites['Northcoast'], $this->users['Casey'], 'editor' );
+		$this->enter( 'Northcoast' );
+		self::assertSame( admin_url(), $this->redirectAfterLogin( 'Casey' ) );
+	}
+
+	/** @group SSO-009 */
+	public function testMemberOfSeveralSitesIsHandedOffUnlessScopeIsSuperAdminsOnly(): void {
+		add_user_to_blog( $this->sites['Northcoast'], $this->users['Riley'], 'editor' );
+		add_user_to_blog( $this->sites['Ridgeview'], $this->users['Riley'], 'editor' );
+		self::assertStringContainsString( 'bridge_start', $this->redirectAfterLogin( 'Riley' ) );
+		Settings::save( get_current_network_id(), [ 'scope' => Settings::SCOPE_SUPER_ADMINS ] );
+		self::assertStringNotContainsString( 'bridge_start', $this->redirectAfterLogin( 'Riley' ) );
+	}
+
+	/** @group SSO-009 */
+	public function testSuperAdminIsHandedOffWithoutAnyMembership(): void {
+		Settings::save( get_current_network_id(), [ 'scope' => Settings::SCOPE_SUPER_ADMINS ] );
+		grant_super_admin( $this->users['Morgan'] );
+		self::assertStringContainsString( 'bridge_start', $this->redirectAfterLogin( 'Morgan' ) );
+	}
+
+	/** @group SSO-009 */
+	public function testSuperAdminOfAnotherNetworkUsingTheSameHubIsHandedOff(): void {
+		add_user_to_blog( $this->sites['Northcoast'], $this->users['Morgan'], 'editor' );
+		$mountainNetworkId = (int) get_site( $this->sites['Ridgeview'] )->site_id;
+		update_network_option( $mountainNetworkId, 'site_admins', [ get_userdata( $this->users['Morgan'] )->user_login ] );
+		self::assertStringContainsString( 'bridge_start', $this->redirectAfterLogin( 'Morgan' ) );
+		Settings::save( $mountainNetworkId, [ 'enabled' => false ] );
+		self::assertStringNotContainsString( 'bridge_start', $this->redirectAfterLogin( 'Morgan' ) );
+	}
+
+	/** @group SSO-009 */
+	public function testPlatformFilterDecidesHandOff(): void {
+		add_user_to_blog( $this->sites['Northcoast'], $this->users['Casey'], 'editor' );
+		add_filter( LocalSessionBridge::HAND_OFF_FILTER, '__return_true' );
+		self::assertStringContainsString( 'bridge_start', $this->redirectAfterLogin( 'Casey' ) );
+		remove_filter( LocalSessionBridge::HAND_OFF_FILTER, '__return_true' );
+		add_user_to_blog( $this->sites['Southmountain'], $this->users['Casey'], 'editor' );
+		add_filter( LocalSessionBridge::HAND_OFF_FILTER, '__return_false' );
+		self::assertStringNotContainsString( 'bridge_start', $this->redirectAfterLogin( 'Casey' ) );
 	}
 
 	public function testArchivedSourceCannotEstablishHubSession(): void {

@@ -34,7 +34,7 @@ The fixture MU plugin is mounted only by `tests/Browser/.wp-env.json` and requir
 
 Fixtures use the `site_members` scope on both networks. Casey belongs only to Northcoast; Alex belongs to Northcoast and Southmountain; Riley belongs to Northcoast and Ridgeview on different networks. Morgan provides an existing conflicting hub account. No fixture user is a super admin.
 
-The browser suite checks completed local login, separate Secure/HttpOnly cookies, preservation of the requested destination, site-local denial without source logout, allowed and denied cross-network SSO, missing second factor, conflicting hub identities, and the OneLogin hand-off. Generated reports stay under ignored `test-results/`.
+The browser suite checks completed local login, a site-local login that never visits the identity site, separate Secure/HttpOnly cookies, preservation of the requested destination, site-local denial without source logout, allowed and denied cross-network SSO, missing second factor, conflicting hub identities, and the OneLogin hand-off. Generated reports stay under ignored `test-results/`.
 
 ## Behavior IDs
 

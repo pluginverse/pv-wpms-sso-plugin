@@ -53,7 +53,8 @@ foreach ( [ 'alex' => [ 'northcoast', 'southmountain' ], 'casey' => [ 'northcoas
 	if ( is_wp_error( $userId ) ) {
 		throw new RuntimeException( $userId->get_error_message() );
 	}
-	foreach ( $sites as $blogId ) {
+	// wp_insert_user leaves an empty membership on the root site; site-local means one site.
+	foreach ( [ get_main_site_id(), ...array_values( $sites ) ] as $blogId ) {
 		remove_user_from_blog( $userId, $blogId );
 	}
 	foreach ( $memberships as $siteName ) {

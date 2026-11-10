@@ -15,7 +15,7 @@ WordPress auth cookies are host-scoped. On a network of domain-mapped sites, a u
 
 PV WPMS SSO (Plugin Verse WordPress Multisite Single Sign On) adds a "Sign in with {network name}" button to each site's login screen. Clicking it delegates authentication to one identity site — the network's root site, or any designated site in the install — where a single existing session (already past two-factor) mints a short-lived, single-use signed ticket that logs the user into the site they asked for, cookie and all. The button's inline probe asks the identity site whether a session already exists, so users see "Continue as {name}" with their photo instead of a second credential prompt.
 
-A completed local sign-in can establish that identity session through a browser-bound hand-off, preserving the source site's password and two-factor flow. Subsequent SSO into another mapped domain does not ask again. Under `site_members`, ordinary users can enter only sites where they already hold a role, including explicitly assigned sites in another network.
+For super admins and members of several sites, a completed local sign-in can establish that identity session through a browser-bound hand-off, preserving the source site's password and two-factor flow. Subsequent SSO into another mapped domain does not ask again. Under `site_members`, ordinary users can enter only sites where they already hold a role, including explicitly assigned sites in another network.
 
 ## What it is not
 

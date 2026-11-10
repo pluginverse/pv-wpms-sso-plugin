@@ -24,3 +24,10 @@ Feature: Reuse a completed local login
       When Alex completes local sign-in on Northcoast
       Then the hub session is refused
       And Morgan keeps the hub session
+
+  Rule: A site-local account never leaves its site
+    @SSO-009
+    Scenario: A one-site member signs in without visiting the identity site
+      Given Casey has a role only on Northcoast
+      When Casey signs in locally on Northcoast
+      Then Casey stays on Northcoast

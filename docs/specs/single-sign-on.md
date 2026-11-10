@@ -25,7 +25,8 @@ Network and super admins of domain-mapped multisite installs must re-enter crede
 
 ### Reuse a completed local login
 
-- A normal completed `wp-login.php` login on a participating client site starts a browser redirect through the identity site, back to the source, and back to the identity site before returning to the original local destination. Local password and two-factor handling remain with the source site. The return URL travels percent-encoded, so its own query arguments survive and cannot override hand-off parameters. For the default destination the return URL follows WordPress's own landing rules (members who cannot edit posts land on their profile); when that landing is on another host, such as the user admin for an account without any site, no hand-off starts and WordPress redirects as usual. Unexpected `login_redirect` values from other plugins pass through untouched.
+- Only accounts that can plausibly reach another site are handed off (decision 0011): a super admin of the source network or of any enabled network designating the same identity site, or — when the source network's scope is wider than `super_admins` — a member of more than one site, as `get_blogs_of_user()` counts them. Everyone else finishes the login on the source site and never contacts the identity site. `pv_wpms_sso/hand_off_local_login` (bool, `WP_User`, source blog ID) overrides the result, for platforms that grant network reach their own way.
+- For those accounts, a normal completed `wp-login.php` login on a participating client site starts a browser redirect through the identity site, back to the source, and back to the identity site before returning to the original local destination. Local password and two-factor handling remain with the source site. The return URL travels percent-encoded, so its own query arguments survive and cannot override hand-off parameters. For the default destination the return URL follows WordPress's own landing rules (members who cannot edit posts land on their profile); when that landing is on another host, such as the user admin for an account without any site, no hand-off starts and WordPress redirects as usual. Unexpected `login_redirect` values from other plugins pass through untouched.
 - The identity site stores a ten-minute transaction binding the expected user, registered source site, validated return URL, and a fresh random state. An HttpOnly, SameSite=Lax cookie binds that state to the hub browser. Cookies use Secure on HTTPS.
 - The source must validate its actual `logged_in` cookie and match the transaction's expected user. Merely setting a current user or posting a user ID is insufficient. The source signs a 60-second proof using an HMAC key derived from the hub key with the context `pv-wpms-sso/local-session/v1`, keeping local-session proofs distinct from destination tickets.
 - Completion verifies cookie/state, source trust and availability, user/login, issuer/audience, expiry, and an atomic transaction claim in the existing replay registry. Only the HTTP completion handler sets the hub's own cookies. No roles are created. An existing different hub identity is refused; a matching identity continues.
@@ -44,7 +45,7 @@ Network and super admins of domain-mapped multisite installs must re-enter crede
 - Ticket redemption round trip, replay rejection, foreign audience rejection; state single-use and cookie binding; jti single-use claim (`tests/Integration/SsoFlowTest.php`)
 - Key generation is lazy, stable, and rotatable; unusable designated IdP falls back to the network's main site (`tests/Integration/KeyStoreAndSettingsTest.php`)
 
-- Executable scenarios: `tests/Behavior/features/local-login.feature` (`SSO-001`, `SSO-005`, `SSO-006`) and `site-access.feature` (`SSO-002`–`SSO-004`, `SSO-007`, `SSO-008`).
+- Executable scenarios: `tests/Behavior/features/local-login.feature` (`SSO-001`, `SSO-005`, `SSO-006`, `SSO-009`) and `site-access.feature` (`SSO-002`–`SSO-004`, `SSO-007`, `SSO-008`).
 - Real HTTPS cookie and network-routing tests: `tests/Browser/journeys.spec.cjs`; security regressions: `tests/Integration/LocalSessionBridgeTest.php` and `MembershipJourneyTest.php`.
 
 ## Non-goals
@@ -67,3 +68,4 @@ Network and super admins of domain-mapped multisite installs must re-enter crede
 - [0004: Super admins by default; destination network governs scope](../decisions/0004-super-admins-by-default-destination-network-governs-scope.md)
 
 - [0009: Bridge completed local sessions](../decisions/0009-bridge-completed-local-sessions.md)
+- [0011: Hand off only accounts that can reach another site](../decisions/0011-hand-off-only-accounts-that-can-reach-another-site.md)

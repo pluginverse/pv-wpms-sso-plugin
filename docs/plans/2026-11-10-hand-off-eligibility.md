@@ -1,7 +1,7 @@
 ---
 title: "Plan: Hand-off eligibility"
 description: "Stop redirecting site-local users through the identity site after a local login."
-status: approved
+status: done
 date: 2026-11-10
 size: bounded
 specs: ["single-sign-on"]

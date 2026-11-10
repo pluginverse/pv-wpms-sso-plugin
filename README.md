@@ -17,7 +17,7 @@ WordPress auth cookies are host-scoped. On a network of domain-mapped sites, a s
 
 Replay, login CSRF, and open redirects are closed by design — the [security guide](docs/guides/security.md) has the threat table.
 
-A completed local login on a participating mapped site also establishes the identity-site session through a browser-bound hand-off, then returns you to your original site. Later, use the destination's SSO button without repeating that login. The hand-off preserves local password/2FA handling and never grants a site role. A conflicting account already signed into the identity site is refused rather than replaced.
+For accounts that can reach another site — super admins, and members of more than one site when the scope allows members — a completed local login on a participating mapped site also establishes the identity-site session through a browser-bound hand-off, then returns you to your original site. Site-local users are never redirected: their login does not touch the identity site. Later, use the destination's SSO button without repeating that login. The hand-off preserves local password/2FA handling and never grants a site role. A conflicting account already signed into the identity site is refused rather than replaced.
 
 For membership-limited access, configure **Who can use SSO** as **Members of the destination site** (`site_members`) on each network. One-site users stay local; multi-site users can reach their member sites; cross-network users need a role on the specific destination site. **Any account in the shared installation** (`network_users`) deliberately grants broader access and does not check network membership. The default remains super admins only.
 
@@ -76,6 +76,7 @@ Users signing in through SAML pass the same destination-network scope as everyon
 
 - `pv_wpms_sso/button_label` — the SSO button label (default: "Sign in with {network name}").
 - `pv_wpms_sso/user_may_sso` (bool, $user_id, $client_blog_id) — override the scope policy; applies at mint and redemption.
+- `pv_wpms_sso/hand_off_local_login` (bool, $user, $source_blog_id) — whether a completed local login is handed off to the identity site. Default: super admins of any network using that identity site, and multi-site members unless the scope is super admins only. Return true for staff your platform grants network reach some other way.
 - `pv_wpms_sso/allowed_redirect_hosts` — extra allowed redirect hosts (list of `host` / `host:port`), empty by default.
 
 ### Actions

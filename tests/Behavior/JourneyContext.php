@@ -67,6 +67,18 @@ final class JourneyContext implements Context {
 		$this->bridge( $person, true );
 	}
 
+	#[When(':person signs in locally on Northcoast')]
+	public function localLoginWithoutHandOff( string $person ): void {
+		$userId = $this->fixture->users[ $person ];
+		$this->fixture->enter( 'Northcoast', $userId );
+		$this->callbackUrl = (string) apply_filters( 'login_redirect', admin_url(), '', get_userdata( $userId ) );
+	}
+
+	#[Then(':person stays on :site')]
+	public function staysOnSite( string $person, string $site ): void {
+		Assert::assertSame( get_site_url( $this->fixture->sites[ $site ] ) . '/wp-admin/', $this->callbackUrl );
+	}
+
 	#[Given(':person has not completed the second factor on Northcoast')]
 	public function unfinishedLogin( string $person ): void {
 		$this->fixture->enter( 'Northcoast', 0 );

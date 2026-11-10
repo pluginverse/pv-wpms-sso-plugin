@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Reuse completed local sign-ins across mapped HTTPS domains through a browser-bound, single-use hand-off to the identity site. Preserve local password/two-factor login and destination-site membership; refuse conflicting hub identities.
+- Hand off only accounts that can reach another site — super admins of any network using the identity site, and members of several sites when the scope allows members. Site-local users are never redirected. The `pv_wpms_sso/hand_off_local_login` filter overrides the rule.
 - Executable BDD for local, network, cross-network, and OneLogin journeys, with stable behavior IDs and isolated HTTPS browser checks.
 - SSO button on each site's login screen delegating to the network's root or designated identity site, with signed single-use tickets, a credentialed session probe that personalizes the button ("Continue as {name}" with avatar), and super-admin-default scope configurable per network. Works across networks of a wp-multi-network (same-database) install.
 - Network admin settings screen (Settings → SSO): enable/disable, identity site selection (root or designated, cross-network capable), scope, button label, signing-key rotation.
