@@ -1,6 +1,10 @@
 name: CI
 
-on: [push]
+# Branch pushes only: tags are handled by release.yml, and the build job
+# below derives a branch name from the ref.
+on:
+  push:
+    branches: ["**"]
 
 jobs:
   quality:
@@ -24,6 +28,12 @@ jobs:
       - name: Unit tests (no WordPress needed)
         run: composer test-unit
 
+      - name: Behavior ID trace
+        run: composer test-trace
+
+      - name: Release script tests
+        run: composer test-scripts
+
   test:
     runs-on: ubuntu-latest
 
@@ -39,18 +49,72 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install test tooling
+        run: npm ci
+
       - name: Start wp-env (multisite)
         run: npx @wordpress/env start
 
       - name: Integration + unit tests (wp-env, multisite)
         run: composer test
 
+      - name: Executable BDD journeys
+        run: composer test-bdd -- --format=progress
+
       - name: Stop wp-env
         if: always()
         run: npx @wordpress/env stop
 
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, mysqli
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: composer install --prefer-dist --no-interaction --no-progress
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run browser:start
+      - run: npm run browser:seed
+      - run: npm run test:browser
+      - name: Stop isolated browser environment
+        if: always()
+        run: npm run browser:stop
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          coverage: none
+      - name: Install runtime dependencies only (bundled SAML library)
+        run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+      - run: python3 scripts/package.py
+      - run: python3 scripts/package.py --verify dist/pv-wpms-sso.zip
+      - name: Extract release archive for Plugin Check
+        run: unzip -q dist/pv-wpms-sso.zip -d dist/plugin-check
+      - name: Check packaged plugin
+        uses: WordPress/plugin-check-action@v1
+        with:
+          build-dir: ./dist/plugin-check/pv-wpms-sso
+          exclude-directories: vendor
+
   build:
-    needs: [quality, test]
+    needs: [quality, test, browser, package]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -74,7 +138,7 @@ jobs:
           rm -rf .github
           rm -rf .idea
           rm -rf .vscode
-          rm -rf bin
+          rm -rf bin scripts dist .wordpress-org assets/listing
           rm -rf build
           rm -rf tests
           rm -rf docs
@@ -84,6 +148,7 @@ jobs:
           rm phpunit.xml.dist
           rm phpstan.neon.dist
           rm .wp-env.json
+          rm behat.dist.php package.json package-lock.json
 
       - name: Create a built branch
         run: |

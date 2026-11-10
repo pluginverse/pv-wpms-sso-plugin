@@ -118,14 +118,19 @@ final class ClientFlow {
 	}
 
 	private static function callback(): never {
-		$errorCode = sanitize_key( self::queryStringParam( 'error' ) );
+		$errorCode      = sanitize_key( self::queryStringParam( 'error' ) );
+		$stateFromQuery = self::queryStringParam( 'state' );
+		$ticketToken    = self::queryStringParam( 'ticket' );
+
+		$pendingCheck = SessionCheck::pending( self::cookieStringParam( SessionCheck::COOKIE_NAME ), $stateFromQuery );
+		if ( null !== $pendingCheck ) {
+			self::completeSessionCheck( $pendingCheck, $stateFromQuery, $ticketToken, $errorCode );
+		}
 
 		if ( '' !== $errorCode ) {
 			self::redirectToLoginWithError( $errorCode );
 		}
 
-		$stateFromQuery = self::queryStringParam( 'state' );
-		$ticketToken    = self::queryStringParam( 'ticket' );
 		$stateFromCookie = self::cookieStringParam( StateStore::STATE_COOKIE_NAME );
 
 		$redirectTo = StateStore::consume( $stateFromQuery, $stateFromCookie );
@@ -138,17 +143,43 @@ final class ClientFlow {
 			$errorCodeFromTicket = $ticket->get_error_code();
 			self::redirectToLoginWithError( is_string( $errorCodeFromTicket ) ? $errorCodeFromTicket : self::ERROR_INVALID_TICKET );
 		}
-		if ( ! self::userMayRedeemHere( $ticket->userId ) ) {
-			self::redirectToLoginWithError( self::ERROR_NOT_ALLOWED );
+
+		self::signIn( $ticket, $redirectTo );
+	}
+
+	/**
+	 * The login-page session check came back (decision 0012). Its state is the
+	 * check cookie, already matched to the query state by the caller; the
+	 * ticket still passes every redemption check. Failures are quiet: the
+	 * visitor asked for a login form, not for single sign-on.
+	 *
+	 * @param array{redirect_to: string, auto_sign_in: bool, after_logout: bool} $pendingCheck
+	 */
+	private static function completeSessionCheck( array $pendingCheck, string $state, string $ticketToken, string $errorCode ): never {
+		SessionCheck::clearCookie();
+
+		$ticket = '' === $errorCode && '' !== $ticketToken ? self::verifyAndConsumeTicket( $ticketToken, $state ) : null;
+		if ( ! $ticket instanceof Ticket ) {
+			wp_safe_redirect( SessionCheck::loginUrl( $pendingCheck, SessionCheck::RESULT_NONE ) );
+			exit;
 		}
 
+		if ( $pendingCheck['auto_sign_in'] ) {
+			self::signIn( $ticket, $pendingCheck['redirect_to'] );
+		}
+
+		wp_safe_redirect( SessionCheck::loginUrl( $pendingCheck, SessionCheck::storeHint( $ticket ) ) );
+		exit;
+	}
+
+	private static function signIn( Ticket $ticket, string $redirectTo ): never {
 		wp_set_current_user( $ticket->userId );
 		wp_set_auth_cookie( $ticket->userId, true, is_ssl() );
 
 		/** Fires after a successful SSO login, before the final redirect. */
 		do_action( 'pv_wpms_sso/sso_login', $ticket->userId, get_current_blog_id(), $ticket );
 
-		$destination = RedirectGuard::destinationAllowed( $redirectTo, self::currentSiteUrl(), self::extraAllowedHosts() )
+		$destination = '' !== $redirectTo && RedirectGuard::destinationAllowed( $redirectTo, self::currentSiteUrl(), self::extraAllowedHosts() )
 			? $redirectTo
 			: self::currentSiteUrl() . '/wp-admin/';
 
@@ -189,6 +220,10 @@ final class ClientFlow {
 			return new WP_Error( self::ERROR_REPLAYED_TICKET, 'Ticket was already used.' );
 		}
 
+		if ( ! self::userMayRedeemHere( $ticket->userId ) ) {
+			return new WP_Error( self::ERROR_NOT_ALLOWED, __( 'Destination access was refused.', 'pv-wpms-sso' ) );
+		}
+
 		return $ticket;
 	}
 
@@ -222,7 +257,8 @@ final class ClientFlow {
 		exit;
 	}
 
-	private static function authorizeUrl( string $state ): string {
+	/** @param bool $silent ask with prompt=none: answer from the existing session only */
+	public static function authorizeUrl( string $state, bool $silent = false ): string {
 		$clientBlogId = get_current_blog_id();
 		$idpBlogId    = self::idpBlogIdForThisSite();
 
@@ -231,7 +267,7 @@ final class ClientFlow {
 			[
 				'client_blog_id' => $clientBlogId,
 				'state'          => $state,
-			],
+			] + ( $silent ? [ 'prompt' => AuthorizeEndpoint::PROMPT_NONE ] : [] ),
 			rest_url( AuthorizeEndpoint::REST_NAMESPACE . AuthorizeEndpoint::ROUTE )
 		);
 		restore_current_blog();
@@ -243,7 +279,7 @@ final class ClientFlow {
 		return get_site_url( get_current_blog_id() );
 	}
 
-	private static function currentSiteCookiePath(): string {
+	public static function currentSiteCookiePath(): string {
 		$currentSite = get_blog_details( get_current_blog_id() );
 
 		return $currentSite instanceof WP_Site ? (string) $currentSite->path : '/';
@@ -261,7 +297,7 @@ final class ClientFlow {
 	 *
 	 * @return array<int, string>
 	 */
-	private static function extraAllowedHosts(): array {
+	public static function extraAllowedHosts(): array {
 		/** Filter documenting the accepted shape: list of lowercase "host" or "host:port" values. */
 		$extraHosts = apply_filters( RedirectGuard::ALLOWED_HOSTS_FILTER, [] );
 

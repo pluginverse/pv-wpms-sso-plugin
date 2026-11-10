@@ -82,7 +82,7 @@ final class KeyStore {
 		if ( 1 !== preg_match( '/^[0-9a-f]{64}$/', $constantKey ) ) {
 			_doing_it_wrong(
 				__METHOD__,
-				self::CONSTANT_NAME . ' must be 64 hexadecimal characters (bin2hex(random_bytes(32))).',
+				esc_html( self::CONSTANT_NAME . ' must be 64 hexadecimal characters (bin2hex(random_bytes(32))).' ),
 				'0.1.0'
 			);
 

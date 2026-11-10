@@ -7,7 +7,7 @@ namespace PV\WpmsSso;
 use function array_values;
 use function in_array;
 use function is_array;
-use function parse_url;
+use function parse_url; // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure and unit-tested without WordPress; PHP 8.2 parses consistently.
 use function str_starts_with;
 use function strtolower;
 
@@ -21,6 +21,28 @@ use function strtolower;
 final class RedirectGuard {
 
 	public const ALLOWED_HOSTS_FILTER = 'pv_wpms_sso/allowed_redirect_hosts';
+	private static string $registeredRedirectHost = '';
+
+	/** Authorize one generated cross-domain hop to a registered site's URL. */
+	public static function allowSiteRedirect( string $destinationUrl, int $destinationBlogId ): bool {
+		if ( ! self::urlMatchesSiteHost( $destinationUrl, get_site_url( $destinationBlogId ) ) ) {
+			return false;
+		}
+		self::$registeredRedirectHost = (string) wp_parse_url( $destinationUrl, PHP_URL_HOST );
+		add_filter( 'allowed_redirect_hosts', [ self::class, 'allowRegisteredRedirectHost' ] );
+		return true;
+	}
+
+	/**
+	 * @param array<string> $hosts
+	 * @return array<string>
+	 */
+	public static function allowRegisteredRedirectHost( array $hosts ): array {
+		if ( '' !== self::$registeredRedirectHost ) {
+			$hosts[] = self::$registeredRedirectHost;
+		}
+		return $hosts;
+	}
 
 	/**
 	 * Pure check: is $destinationUrl a safe post-login target for a site whose
@@ -30,7 +52,7 @@ final class RedirectGuard {
 	 * @param array<int, string> $extraAllowedHosts lowercase "host" or "host:port" entries
 	 */
 	public static function destinationAllowed( string $destinationUrl, string $siteUrl, array $extraAllowedHosts = [] ): bool {
-		$destinationParts = parse_url( $destinationUrl );
+		$destinationParts = parse_url( $destinationUrl ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure and unit-tested without WordPress; PHP 8.2 parses consistently.
 
 		if ( ! is_array( $destinationParts ) ) {
 			return false;
@@ -66,8 +88,8 @@ final class RedirectGuard {
 	 * origins against the registered site they claim to be.
 	 */
 	public static function urlMatchesSiteHost( string $candidateUrl, string $siteUrl ): bool {
-		$candidateParts = parse_url( $candidateUrl );
-		$siteParts      = parse_url( $siteUrl );
+		$candidateParts = parse_url( $candidateUrl ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure and unit-tested without WordPress; PHP 8.2 parses consistently.
+		$siteParts      = parse_url( $siteUrl ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure and unit-tested without WordPress; PHP 8.2 parses consistently.
 
 		if ( ! is_array( $candidateParts ) || ! is_array( $siteParts ) ) {
 			return false;
@@ -99,7 +121,7 @@ final class RedirectGuard {
 	 * @return array<int, string>
 	 */
 	private static function siteHosts( string $siteUrl, array $extraAllowedHosts ): array {
-		$siteParts = parse_url( $siteUrl );
+		$siteParts = parse_url( $siteUrl ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure and unit-tested without WordPress; PHP 8.2 parses consistently.
 		$hosts     = [];
 
 		if ( is_array( $siteParts ) && isset( $siteParts['host'] ) ) {

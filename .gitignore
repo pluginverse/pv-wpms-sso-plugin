@@ -5,3 +5,12 @@
 .vscode/
 *.code-workspace
 output.log
+
+/test-results/
+/playwright-report/
+
+# Local caches and release archives
+.phpunit.result.cache
+/dist/
+__pycache__/
+*.pyc

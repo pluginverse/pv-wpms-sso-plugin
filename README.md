@@ -10,30 +10,43 @@ WordPress auth cookies are host-scoped. On a network of domain-mapped sites, a s
 
 ## How it works
 
-1. Each site's `wp-login.php` gets a **"Sign in with {network name}"** button (network-configurable label). An inline, credentialed probe asks the identity site whether a session already exists and personalizes the button to **"Continue as {name}"** with your photo.
-2. Clicking it stores a random state (transient + HttpOnly cookie) and redirects to the network's **identity site** — its root site, or any designated site in the install.
-3. Already signed in there? A 60-second **HMAC-signed, single-use ticket** is minted for you and the browser is sent back with it. Not signed in? You log in at the identity site — two-factor included, exactly once — and the flow continues automatically.
-4. Your site verifies the ticket (signature, expiry, issuer/audience binding, state, single-use claim) and sets **its own** auth cookies for its own domain. No shared cookies, no cookie trickery.
+1. Opening a site's `wp-login.php` makes one invisible round trip to the network's **identity site** — its root site, or any designated site in the install — asking whether this browser already has a session there that may enter this site.
+2. It does? A 60-second **HMAC-signed, single-use ticket** comes back and you are **signed in automatically**, no click. (Per network you can switch this to a **"Continue as {name}"** button; right after signing out you always get the button, so logging out stays logged out.)
+3. It does not, or your account may not enter this site? You get the normal WordPress login form with **no SSO button** — nothing to click that could fail. Sign in on the site as usual.
+4. The site verifies every ticket (signature, expiry, issuer/audience binding, state, single-use claim) and sets **its own** auth cookies for its own domain. No shared cookies, no third-party cookies, no iframes — it works in every browser.
+
+Each network picks its own identity site, so one installation can run several independent sign-on domains: sessions never cross between networks that designate different identity sites.
 
 Replay, login CSRF, and open redirects are closed by design — the [security guide](docs/guides/security.md) has the threat table.
+
+For accounts that can reach another site — super admins, and members of more than one site when the scope allows members — a completed local login on a participating mapped site also establishes the identity-site session through a browser-bound hand-off, then returns you to your original site. Site-local users are never redirected: their login does not touch the identity site. Later, use the destination's SSO button without repeating that login. The hand-off preserves local password/2FA handling and never grants a site role. A conflicting account already signed into the identity site is refused rather than replaced.
+
+For membership-limited access, configure **Who can use SSO** as **Members of the destination site** (`site_members`) on each network. One-site users stay local; multi-site users can reach their member sites; cross-network users need a role on the specific destination site. **Any account in the shared installation** (`network_users`) deliberately grants broader access and does not check network membership. The default remains super admins only.
+
+Existing local sessions that predate a hand-off are not discovered across domains. Complete a participating local login or sign into the identity site first. Two-factor providers that bypass the final WordPress `login_redirect` filter need a provider-specific integration.
 
 ## Features
 
 - **Root-site or designated-site identity** per network; designating another network's site gives cross-network SSO with zero extra registration.
-- **Scopes**: super admins only (default), members of the destination site, or any network user — enforced at mint *and* at redemption, filterable.
-- **Session probe** with an origin allowlist and `no-store`: user data only for registered, trusting site origins.
+- **Scopes**: super admins only (default), members of the destination site, or any account in the shared installation — enforced at mint *and* at redemption, filterable.
+- **Login-page session check**: automatic sign-in or one-click "Continue as", and no button for anyone it would refuse.
 - **External SSO via SAML 2.0** (OneLogin, Okta, any SAML IdP): one more button on every login screen, terminating at the identity site and continuing through the same ticket flow. Email-based user mapping with opt-in auto-provisioning. See [External SSO (SAML)](#external-sso-saml).
 - **Network settings screen** (Settings → SSO) and **WP-CLI** (`wp pv-wpms-sso status`, `wp pv-wpms-sso rotate-key`).
 - **Key management**: one HMAC key per identity site, lazily generated, rotatable from the UI or CLI, overridable via a `PV_WPMS_SSO_KEY` wp-config constant.
-- No runtime dependencies; PHP 8.2+, WordPress 6.5+, network-activated.
+- Bundled php-saml for external SSO; PHP 8.2+, WordPress 6.5+, network-activated. Test tooling is development-only.
 
 ## Installation
 
+Upload `pv-wpms-sso.zip` from a [release](https://github.com/pluginverse/pv-wpms-sso-plugin/releases) (it bundles the SAML library) and **Network Activate**. Then open **Network Admin → Settings → SSO**.
+
+With Composer, add the repository and require a tagged version:
+
 ```sh
-composer require pluginverse/pv-wpms-sso
+composer config repositories.pv-wpms-sso vcs https://github.com/pluginverse/pv-wpms-sso-plugin
+composer require pluginverse/pv-wpms-sso:^0.1
 ```
 
-Or clone/download into `wp-content/plugins/pv-wpms-sso` and **Network Activate**. Then open **Network Admin → Settings → SSO**.
+Composer installs the SAML library into your project's `vendor/`; details and requirements are in [Releasing](docs/guides/releasing.md#composer). From a clone, run `composer install --no-dev` inside the plugin folder.
 
 ### Configuring
 
@@ -41,7 +54,8 @@ Or clone/download into `wp-content/plugins/pv-wpms-sso` and **Network Activate**
 |---|---|---|
 | Enable single sign-on | on / off | on |
 | Identity site | root site of this network, or a designated site ID (any site of the install) | root site |
-| Who can use SSO | super admins / destination-site members / any network user | super admins |
+| Who can use SSO | super admins / destination-site members / any account in the shared installation | super admins |
+| Automatic sign-in | on (sign in at once) / off (show "Continue as {name}") | on |
 | Button label | free text | "Sign in with {network name}" |
 
 For platforms that forbid database-stored secrets, define in wp-config:
@@ -70,6 +84,8 @@ Users signing in through SAML pass the same destination-network scope as everyon
 
 - `pv_wpms_sso/button_label` — the SSO button label (default: "Sign in with {network name}").
 - `pv_wpms_sso/user_may_sso` (bool, $user_id, $client_blog_id) — override the scope policy; applies at mint and redemption.
+- `pv_wpms_sso/check_session_on_login_page` (bool, $blog_id) — return false to stop login pages asking the identity site; the classic always-visible button returns.
+- `pv_wpms_sso/hand_off_local_login` (bool, $user, $source_blog_id) — whether a completed local login is handed off to the identity site. Default: super admins of any network using that identity site, and multi-site members unless the scope is super admins only. Return true for staff your platform grants network reach some other way.
 - `pv_wpms_sso/allowed_redirect_hosts` — extra allowed redirect hosts (list of `host` / `host:port`), empty by default.
 
 ### Actions
@@ -86,16 +102,26 @@ composer test-unit      # pure unit tests, no WordPress needed
 composer env:start      # wp-env multisite environment (Docker)
 composer test           # full suite (unit + integration) under wp-env
 composer phpstan        # static analysis, level 9
+composer test-bdd        # executable user journeys in wp-env
+composer test-trace      # stable behavior ID validation
+npm ci
+npx playwright install chromium
+npm run browser:start   # separate, disposable mapped-domain environment
+npm run browser:seed
+npm run test:browser     # real HTTPS cookies, network routing, local test IdP
+npm run browser:stop
 ```
+
+Suite boundaries and provider limitations are documented in [Testing](docs/guides/testing.md). Versions are cut as described in [Releasing](docs/guides/releasing.md).
 
 Design docs live in [`docs/`](docs/index.md): the living [spec](docs/specs/single-sign-on.md), [decision records](docs/decisions/), and the [security guide](docs/guides/security.md).
 
 ## Roadmap
 
-- [ ] Browser end-to-end test of the two-domain redirect dance
+- [x] Executable BDD plus HTTPS browser tests of mapped-domain and cross-network sign-in
 - [ ] `roles:` scope values (e.g., editors of the destination site)
 - [ ] Multiple SAML IdPs per network
 
 ## License
 
-GPL-3.0-or-later with the Plugin Verse brand-protection additional permission — see [LICENSE.txt](LICENSE.txt). The built package bundles [onelogin/php-saml](https://github.com/SAML-Toolkits/php-saml) (MIT) and its dependencies.
+GPL-3.0-or-later — see [LICENSE.txt](LICENSE.txt). The built package bundles [onelogin/php-saml](https://github.com/SAML-Toolkits/php-saml) (MIT) and its dependencies.

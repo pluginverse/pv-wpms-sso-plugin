@@ -1,0 +1,19 @@
+{
+  "phpVersion": "8.2",
+  "port": 8894,
+  "multisite": true,
+  "plugins": [
+    "."
+  ],
+  "mappings": {
+    "wp-content/mu-plugins": "./tests/Browser/mu-plugins"
+  },
+  "config": {
+    "PV_WPMS_SSO_BROWSER_TESTS": true,
+    "WP_ENVIRONMENT_TYPE": "local",
+    "WP_DEBUG_DISPLAY": false,
+    "SUBDOMAIN_INSTALL": true,
+    "COOKIE_DOMAIN": false
+  },
+  "testsEnvironment": false
+}

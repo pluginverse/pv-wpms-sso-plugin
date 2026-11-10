@@ -7,7 +7,7 @@ PV WPMS SSO (Plugin Verse WordPress Multisite Single Sign On) is a network-activ
 ## Quick start
 
 ```sh
-composer install        # dev tooling (phpunit, phpstan); no runtime dependencies
+composer install        # dev tooling plus bundled php-saml runtime dependency
 composer env:start      # wp-env docker multisite dev env (needs Docker)
 composer test           # PHPUnit via wp-env
 composer phpstan        # static analysis, level 9
@@ -21,8 +21,10 @@ composer env:stop
 - `pv-wpms-sso.php` — main plugin file: header, autoloader, hook wiring (the only file WordPress loads)
 - `src/` — `PV\WpmsSso` classes; runtime class-map autoloader, no Composer at runtime
 - `tests/` — PHPUnit: pure unit tests + wp-phpunit integration tests
+- `scripts/` — release tooling (`release.py`, `package.py`) and its tests
 - `docs/` — specs, decisions, plans, guides (see below)
-- `assets/` — plugin icon and brand assets
+- `assets/` — brand symbol and listing artwork sources; `.wordpress-org/` holds the published listing images
+- `readme.txt` — WordPress.org listing text; its stable tag and changelog are written by `scripts/release.py`
 - `.agents/skills/` — project skills (WordPress CLI, VIP CLI, performance)
 
 ## Documentation
@@ -45,7 +47,9 @@ Templates: `_template.md` in `docs/specs/`, `docs/decisions/`, and `docs/plans/`
 Before editing, check whether the task touches one of these areas and read the guide first (a TODO line is a guide not written yet):
 
 - Security/auth: `docs/guides/security.md` (trust model, key handling, attack table)
-- TODO Testing (`docs/guides/testing.md`): unit vs wp-phpunit integration split, wp-env fixtures, when to add which — write it when the integration suite outgrows its bootstrap
+- Testing: `docs/guides/testing.md` — PHPUnit, executable BDD, behavior IDs, and isolated HTTPS browser fixtures.
+- Releasing: `docs/guides/releasing.md` — version preparation, the release archive, tags, Plugin Check, Composer, and WordPress.org publication.
+- Listing: `docs/guides/listing.md` — WordPress.org artwork and screenshots.
 
 ## Skills
 

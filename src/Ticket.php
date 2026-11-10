@@ -57,7 +57,7 @@ final class Ticket {
 
 		foreach ( [ ...$requiredIntClaims, ...$requiredTextClaims ] as $claimName ) {
 			if ( ! array_key_exists( $claimName, $claims ) ) {
-				throw InvalidTicketException::forReason( InvalidTicketException::REASON_MALFORMED, 'missing claim "' . $claimName . '"' );
+				throw InvalidTicketException::forReason( InvalidTicketException::REASON_MALFORMED, 'missing claim "' . $claimName . '"' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception text is handled at its output boundary.
 			}
 		}
 
@@ -82,7 +82,7 @@ final class Ticket {
 
 		return is_numeric( $value )
 			? (int) $value
-			: throw InvalidTicketException::forReason( InvalidTicketException::REASON_MALFORMED, 'claim "' . $claimName . '" is not an integer' );
+			: throw InvalidTicketException::forReason( InvalidTicketException::REASON_MALFORMED, 'claim "' . $claimName . '" is not an integer' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception text is handled at its output boundary.
 	}
 
 	/** @param array<string, mixed> $claims */
@@ -91,6 +91,6 @@ final class Ticket {
 
 		return is_scalar( $value )
 			? (string) $value
-			: throw InvalidTicketException::forReason( InvalidTicketException::REASON_MALFORMED, 'claim "' . $claimName . '" is not a string' );
+			: throw InvalidTicketException::forReason( InvalidTicketException::REASON_MALFORMED, 'claim "' . $claimName . '" is not a string' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception text is handled at its output boundary.
 	}
 }

@@ -22,12 +22,21 @@ final class TrustPolicy {
 	public const USER_MAY_SSO_FILTER = 'pv_wpms_sso/user_may_sso';
 
 	/**
+	 * SSO GETs are top-level redirects or an origin-gated probe, not WordPress
+	 * REST mutations. Core clears nonce-less REST auth; validate the actual
+	 * login cookie here without authenticating unrelated REST requests.
+	 */
+	public static function currentSessionUserId(): int {
+		return get_current_user_id() ?: (int) wp_validate_auth_cookie( '', 'logged_in' );
+	}
+
+	/**
 	 * @return int the client blog's network ID, 0 when the blog is unknown or
 	 *             its network does not designate this site as its IdP.
 	 */
 	public static function trustedClientNetworkId( int $clientBlogId ): int {
 		$clientSite = get_blog_details( $clientBlogId );
-		if ( ! $clientSite instanceof WP_Site ) {
+		if ( ! $clientSite instanceof WP_Site || $clientSite->archived || $clientSite->deleted || $clientSite->spam ) {
 			return 0;
 		}
 

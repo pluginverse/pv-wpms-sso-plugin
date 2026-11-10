@@ -77,7 +77,7 @@ final class SettingsPage {
 	}
 
 	/**
-	 * @param array{enabled: bool, idp_blog_id: int, scope: string, button_label: string} $settings
+	 * @param array{enabled: bool, idp_blog_id: int, scope: string, button_label: string, auto_sign_in: bool} $settings
 	 * @param array{type: string, message: string}|null $notice
 	 */
 	private static function renderHtml(
@@ -101,7 +101,7 @@ final class SettingsPage {
 				<?php
 				printf(
 					/* translators: %s: site URL of the identity site. */
-					esc_html__( 'Sites of this network offer a "Sign in with" button that delegates to the identity site: %s. Users sign in there once (two-factor included) and are signed into any site of the network.', 'pv-wpms-sso' ),
+					esc_html__( 'Login screens of this network\'s sites ask the identity site %s whether the visitor already has a session there. Visitors who do, and who may enter the site, are signed in; everyone else sees the normal login form.', 'pv-wpms-sso' ),
 					'<code>' . esc_html( $idpSiteUrl ) . '</code>'
 				);
 				?>
@@ -117,7 +117,7 @@ final class SettingsPage {
 						<td>
 							<label>
 								<input type="checkbox" name="enabled" value="1" <?php checked( $settings['enabled'] ); ?> />
-								<?php esc_html_e( 'Show the SSO button on this network\'s site login screens', 'pv-wpms-sso' ); ?>
+								<?php esc_html_e( 'Offer single sign-on on this network\'s site login screens', 'pv-wpms-sso' ); ?>
 							</label>
 						</td>
 					</tr>
@@ -148,6 +148,16 @@ final class SettingsPage {
 									<option value="<?php echo esc_attr( $scopeValue ); ?>" <?php selected( $scopeValue, $settings['scope'] ); ?>><?php echo esc_html( $scopeLabel ); ?></option>
 								<?php endforeach; ?>
 							</select>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Automatic sign-in', 'pv-wpms-sso' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="auto_sign_in" value="1" <?php checked( $settings['auto_sign_in'] ); ?> />
+								<?php esc_html_e( 'Sign visitors in as soon as a login screen finds their identity-site session', 'pv-wpms-sso' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e( 'When off, the login screen shows a "Continue as" button instead. Right after signing out, the button is always shown.', 'pv-wpms-sso' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -237,6 +247,7 @@ final class SettingsPage {
 				'idp_blog_id'   => $idpBlogId,
 				'scope'         => $scope,
 				'button_label'  => sanitize_text_field( self::postTextParam( 'button_label', '' ) ),
+				'auto_sign_in'  => isset( $_POST['auto_sign_in'] ),
 			]
 		);
 

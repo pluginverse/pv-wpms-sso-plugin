@@ -35,7 +35,11 @@ final class LoginScreen {
 			return;
 		}
 
-		$networkSsoAvailable = ClientFlow::ssoAvailableForThisSite();
+		// With the session check on (decision 0012) the network button exists
+		// only when the identity site just vouched for a session in scope.
+		$sessionCheckEnabled = SessionCheck::enabledForThisSite();
+		$sessionHint         = $sessionCheckEnabled ? SessionCheck::hint( self::queryStringParam( SessionCheck::RESULT_PARAM ) ) : null;
+		$networkSsoAvailable = ClientFlow::ssoAvailableForThisSite() && ( ! $sessionCheckEnabled || null !== $sessionHint );
 		$samlAvailable       = SamlFlow::samlButtonAvailableForThisSite();
 
 		if ( ! $networkSsoAvailable && ! $samlAvailable ) {
@@ -66,21 +70,36 @@ final class LoginScreen {
 			wp_login_url()
 		);
 
-		$networkButtonHtml = $networkSsoAvailable ? sprintf(
-			'<a id="pv-wpms-sso-button" class="button pv-wpms-sso-button" href="%1$s"
-				data-probe-url="%2$s"
-				data-signed-in-label="%3$s">
-				<span class="pv-wpms-sso-label">%4$s</span>
-			</a>',
-			esc_url( $startUrl ),
-			esc_url( self::sessionProbeUrl() ),
-			esc_attr( sprintf(
-				/* translators: %s: user display name, filled by the session probe. */
-				__( 'Continue as %s', 'pv-wpms-sso' ),
-				'%s'
-			) ),
-			esc_html( $buttonLabel )
-		) : '';
+		$signedInLabel = sprintf(
+			/* translators: %s: user display name. */
+			__( 'Continue as %s', 'pv-wpms-sso' ),
+			'%s'
+		);
+
+		if ( ! $networkSsoAvailable ) {
+			$networkButtonHtml = '';
+		} elseif ( null !== $sessionHint ) {
+			$networkButtonHtml = sprintf(
+				'<a id="pv-wpms-sso-button" class="button pv-wpms-sso-button pv-wpms-sso-authenticated" href="%1$s">%2$s
+					<span class="pv-wpms-sso-label">%3$s</span>
+				</a>',
+				esc_url( $startUrl ),
+				'' !== $sessionHint['avatar_url'] ? sprintf( '<img class="pv-wpms-sso-avatar" src="%s" alt="" />', esc_url( $sessionHint['avatar_url'] ) ) : '',
+				esc_html( sprintf( $signedInLabel, $sessionHint['display_name'] ) )
+			);
+		} else {
+			$networkButtonHtml = sprintf(
+				'<a id="pv-wpms-sso-button" class="button pv-wpms-sso-button" href="%1$s"
+					data-probe-url="%2$s"
+					data-signed-in-label="%3$s">
+					<span class="pv-wpms-sso-label">%4$s</span>
+				</a>',
+				esc_url( $startUrl ),
+				esc_url( self::sessionProbeUrl() ),
+				esc_attr( $signedInLabel ),
+				esc_html( $buttonLabel )
+			);
+		}
 
 		$samlButtonHtml = $samlAvailable ? sprintf(
 			'<a id="pv-wpms-sso-saml-button" class="button pv-wpms-sso-button pv-wpms-sso-saml" href="%1$s">
@@ -98,10 +117,10 @@ final class LoginScreen {
 			<style>%4$s</style>
 			<script>%5$s</script>',
 			esc_html__( 'or', 'pv-wpms-sso' ),
-			$networkButtonHtml,
-			$samlButtonHtml,
-			self::buttonCss(),
-			self::probeScript()
+			$networkButtonHtml, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built above from escaped parts.
+			$samlButtonHtml, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built above from escaped parts.
+			self::buttonCss(), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static stylesheet without request data.
+			self::probeScript() // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static script without request data.
 		);
 	}
 
@@ -211,10 +230,10 @@ final class LoginScreen {
 	}
 
 	private static function buttonCss(): string {
-		return '.pv-wpms-sso{margin:12px 0;padding:0 24px;box-sizing:border-box}
+		return '.pv-wpms-sso{width:320px;max-width:100%;margin:16px auto;padding:0;box-sizing:border-box}
 .pv-wpms-sso-separator{position:relative;text-align:center;margin:8px 0}
 .pv-wpms-sso-separator:before{content:"";position:absolute;top:50%;left:0;width:100%;border-top:1px solid #dcdcde}
-.pv-wpms-sso-separator span{position:relative;background:#fff;padding:0 8px;color:#787c82;font-size:12px}
+.pv-wpms-sso-separator span{position:relative;background:#f0f0f1;padding:0 8px;color:#787c82;font-size:12px}
 .pv-wpms-sso-buttons{display:grid;gap:8px}
 .pv-wpms-sso-button{display:flex!important;align-items:center;justify-content:center;gap:8px;width:100%;height:36px;line-height:2;padding:0 16px}
 .pv-wpms-sso-avatar{width:20px;height:20px;border-radius:50%;flex:none}';
@@ -223,7 +242,7 @@ final class LoginScreen {
 	private static function probeScript(): string {
 		return '(function(){
 	var button=document.getElementById(\'pv-wpms-sso-button\');
-	if(!button||!window.fetch){return;}
+	if(!button||!button.dataset.probeUrl||!window.fetch){return;}
 	fetch(button.dataset.probeUrl,{credentials:\'include\',cache:\'no-store\'})
 		.then(function(response){return response.ok?response.json():null;})
 		.then(function(session){

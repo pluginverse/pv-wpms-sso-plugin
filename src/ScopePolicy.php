@@ -32,7 +32,7 @@ final class ScopePolicy {
 		return [
 			Settings::SCOPE_SUPER_ADMINS  => __( 'Super admins only', 'pv-wpms-sso' ),
 			Settings::SCOPE_SITE_MEMBERS  => __( 'Members of the destination site (and super admins)', 'pv-wpms-sso' ),
-			Settings::SCOPE_NETWORK_USERS => __( 'Any user of this network', 'pv-wpms-sso' ),
+			Settings::SCOPE_NETWORK_USERS => __( 'Any account in the shared installation', 'pv-wpms-sso' ),
 		];
 	}
 }

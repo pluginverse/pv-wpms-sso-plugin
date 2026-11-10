@@ -20,6 +20,11 @@ final class ScopePolicyTest extends TestCase {
 		self::assertFalse( ScopePolicy::userPassesScope( Settings::SCOPE_SUPER_ADMINS, self::FACTS_PLAIN_USER ) );
 	}
 
+	/**
+	 * @group SAML-002
+	 * @group SSO-002
+	 * @group SSO-004
+	 */
 	public function testSiteMembersScopeAllowsMembersAndSuperAdmins(): void {
 		self::assertTrue( ScopePolicy::userPassesScope( Settings::SCOPE_SITE_MEMBERS, self::FACTS_SUPER_ADMIN ) );
 		self::assertTrue( ScopePolicy::userPassesScope( Settings::SCOPE_SITE_MEMBERS, self::FACTS_SITE_MEMBER ) );
