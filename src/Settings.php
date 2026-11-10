@@ -32,20 +32,21 @@ final class Settings {
 	];
 
 	/**
-	 * @var array{enabled: bool, idp_blog_id: int, scope: string, button_label: string}
+	 * @var array{enabled: bool, idp_blog_id: int, scope: string, button_label: string, auto_sign_in: bool}
 	 */
 	private const DEFAULTS = [
 		'enabled'       => true,
 		'idp_blog_id'   => 0,
 		'scope'         => self::SCOPE_SUPER_ADMINS,
 		'button_label'  => '',
+		'auto_sign_in'  => true,
 	];
 
 	/**
 	 * Pure: merges raw stored input with defaults and validation. No WordPress calls.
 	 *
 	 * @param array<string, mixed> $rawSettings
-	 * @return array{enabled: bool, idp_blog_id: int, scope: string, button_label: string}
+	 * @return array{enabled: bool, idp_blog_id: int, scope: string, button_label: string, auto_sign_in: bool}
 	 */
 	public static function mergeWithDefaults( array $rawSettings ): array {
 		$scope = isset( $rawSettings['scope'] ) && is_string( $rawSettings['scope'] )
@@ -59,6 +60,7 @@ final class Settings {
 			'button_label'  => isset( $rawSettings['button_label'] ) && is_string( $rawSettings['button_label'] )
 				? trim( $rawSettings['button_label'] )
 				: self::DEFAULTS['button_label'],
+			'auto_sign_in'  => (bool) ( $rawSettings['auto_sign_in'] ?? self::DEFAULTS['auto_sign_in'] ),
 		] );
 	}
 
@@ -70,7 +72,7 @@ final class Settings {
 	}
 
 	/**
-	 * @return array{enabled: bool, idp_blog_id: int, scope: string, button_label: string}
+	 * @return array{enabled: bool, idp_blog_id: int, scope: string, button_label: string, auto_sign_in: bool}
 	 */
 	public static function forNetwork( int $networkId ): array {
 		$storedSettings = get_network_option( $networkId, self::OPTION_NAME, [] );
@@ -83,6 +85,11 @@ final class Settings {
 
 	public static function isEnabled( ?int $networkId = null ): bool {
 		return self::forNetwork( $networkId ?? get_current_network_id() )['enabled'];
+	}
+
+	/** Sign in at once when the login-page session check finds a session (decision 0012). */
+	public static function autoSignIn( ?int $networkId = null ): bool {
+		return self::forNetwork( $networkId ?? get_current_network_id() )['auto_sign_in'];
 	}
 
 	public static function scope( ?int $networkId = null ): string {

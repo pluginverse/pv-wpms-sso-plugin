@@ -26,6 +26,7 @@ description: Trust model, key handling, and the specific attacks this plugin mus
 |---|---|
 | Local-session replay / login CSRF | Hub-created expiring browser state, expected-user and source binding, purpose-separated signed proof, and an atomic transaction claim; no cookie from a pending login is sufficient |
 | Hub account substitution | A completed source login cannot silently replace another existing hub identity |
+| Forced or forged sign-in through the login-page check | The check only ever signs a browser into the session it already holds at the identity site, in scope for that site; its state is a random value in an HttpOnly cookie that must match the callback and the ticket, and the ticket is single-use. `prompt=none` discloses nothing: no session and refusal look the same, and no display name reaches the client without a redeemed ticket |
 | Ticket replay | 60-second `exp`, atomic `INSERT` claim of `jti` in the global `pv_wpms_sso_jti` table (unique PK); a claimed ticket never verifies twice |
 | Ticket forgery | HMAC-SHA256 over the payload with the IdP key; constant-time comparison |
 | SAML assertion forgery | php-saml strict-mode XML-DSig validation against the configured IdP certificate (message-signed, RSA-SHA256); audience, destination, and timestamp windows enforced |

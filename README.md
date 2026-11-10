@@ -10,10 +10,12 @@ WordPress auth cookies are host-scoped. On a network of domain-mapped sites, a s
 
 ## How it works
 
-1. Each site's `wp-login.php` gets a **"Sign in with {network name}"** button (network-configurable label). An inline, credentialed probe asks the identity site whether a session already exists and personalizes the button to **"Continue as {name}"** with your photo.
-2. Clicking it stores a random state (transient + HttpOnly cookie) and redirects to the network's **identity site** — its root site, or any designated site in the install.
-3. Already signed in there? A 60-second **HMAC-signed, single-use ticket** is minted for you and the browser is sent back with it. Not signed in? You log in at the identity site — two-factor included, exactly once — and the flow continues automatically.
-4. Your site verifies the ticket (signature, expiry, issuer/audience binding, state, single-use claim) and sets **its own** auth cookies for its own domain. No shared cookies, no cookie trickery.
+1. Opening a site's `wp-login.php` makes one invisible round trip to the network's **identity site** — its root site, or any designated site in the install — asking whether this browser already has a session there that may enter this site.
+2. It does? A 60-second **HMAC-signed, single-use ticket** comes back and you are **signed in automatically**, no click. (Per network you can switch this to a **"Continue as {name}"** button; right after signing out you always get the button, so logging out stays logged out.)
+3. It does not, or your account may not enter this site? You get the normal WordPress login form with **no SSO button** — nothing to click that could fail. Sign in on the site as usual.
+4. The site verifies every ticket (signature, expiry, issuer/audience binding, state, single-use claim) and sets **its own** auth cookies for its own domain. No shared cookies, no third-party cookies, no iframes — it works in every browser.
+
+Each network picks its own identity site, so one installation can run several independent sign-on domains: sessions never cross between networks that designate different identity sites.
 
 Replay, login CSRF, and open redirects are closed by design — the [security guide](docs/guides/security.md) has the threat table.
 
@@ -27,7 +29,7 @@ Existing local sessions that predate a hand-off are not discovered across domain
 
 - **Root-site or designated-site identity** per network; designating another network's site gives cross-network SSO with zero extra registration.
 - **Scopes**: super admins only (default), members of the destination site, or any account in the shared installation — enforced at mint *and* at redemption, filterable.
-- **Session probe** with an origin allowlist and `no-store`: user data only for registered, trusting site origins.
+- **Login-page session check**: automatic sign-in or one-click "Continue as", and no button for anyone it would refuse.
 - **External SSO via SAML 2.0** (OneLogin, Okta, any SAML IdP): one more button on every login screen, terminating at the identity site and continuing through the same ticket flow. Email-based user mapping with opt-in auto-provisioning. See [External SSO (SAML)](#external-sso-saml).
 - **Network settings screen** (Settings → SSO) and **WP-CLI** (`wp pv-wpms-sso status`, `wp pv-wpms-sso rotate-key`).
 - **Key management**: one HMAC key per identity site, lazily generated, rotatable from the UI or CLI, overridable via a `PV_WPMS_SSO_KEY` wp-config constant.
@@ -48,6 +50,7 @@ Or upload `pv-wpms-sso.zip` from a [release](https://github.com/pluginverse/pv-w
 | Enable single sign-on | on / off | on |
 | Identity site | root site of this network, or a designated site ID (any site of the install) | root site |
 | Who can use SSO | super admins / destination-site members / any account in the shared installation | super admins |
+| Automatic sign-in | on (sign in at once) / off (show "Continue as {name}") | on |
 | Button label | free text | "Sign in with {network name}" |
 
 For platforms that forbid database-stored secrets, define in wp-config:
@@ -76,6 +79,7 @@ Users signing in through SAML pass the same destination-network scope as everyon
 
 - `pv_wpms_sso/button_label` — the SSO button label (default: "Sign in with {network name}").
 - `pv_wpms_sso/user_may_sso` (bool, $user_id, $client_blog_id) — override the scope policy; applies at mint and redemption.
+- `pv_wpms_sso/check_session_on_login_page` (bool, $blog_id) — return false to stop login pages asking the identity site; the classic always-visible button returns.
 - `pv_wpms_sso/hand_off_local_login` (bool, $user, $source_blog_id) — whether a completed local login is handed off to the identity site. Default: super admins of any network using that identity site, and multi-site members unless the scope is super admins only. Return true for staff your platform grants network reach some other way.
 - `pv_wpms_sso/allowed_redirect_hosts` — extra allowed redirect hosts (list of `host` / `host:port`), empty by default.
 

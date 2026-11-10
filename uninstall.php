@@ -34,6 +34,8 @@ foreach ( $optionTables as $optionTable ) {
 		 WHERE option_name = 'pv_wpms_sso_key'
 		    OR option_name LIKE '\_transient\_pv\_wpms\_sso\_state\_%'
 		    OR option_name LIKE '\_transient\_timeout\_pv\_wpms\_sso\_state\_%'
+		    OR option_name LIKE '\_transient\_pv\_wpms\_sso\_hint\_%'
+		    OR option_name LIKE '\_transient\_timeout\_pv\_wpms\_sso\_hint\_%'
 		    OR option_name LIKE '\_transient\_pv\_wpms\_sso\_bridge\_%'
 		    OR option_name LIKE '\_transient\_timeout\_pv\_wpms\_sso\_bridge\_%'
 		    OR option_name LIKE '\_transient\_pv\_wpms\_sso\_saml\_req\_%'

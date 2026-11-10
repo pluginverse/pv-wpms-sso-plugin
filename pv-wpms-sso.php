@@ -68,6 +68,7 @@ function class_autoloader( string $class ): void {
 		SamlProvider::class => __DIR__ . '/src/SamlProvider.php',
 		SamlSettings::class => __DIR__ . '/src/SamlSettings.php',
 		ScopePolicy::class => __DIR__ . '/src/ScopePolicy.php',
+		SessionCheck::class => __DIR__ . '/src/SessionCheck.php',
 		SessionEndpoint::class => __DIR__ . '/src/SessionEndpoint.php',
 		Settings::class => __DIR__ . '/src/Settings.php',
 		SettingsPage::class => __DIR__ . '/src/SettingsPage.php',
@@ -115,6 +116,7 @@ add_action( 'login_init', [ LocalSessionBridge::class, 'handleRequest' ] );
 add_filter( 'login_redirect', [ LocalSessionBridge::class, 'filterLoginRedirect' ], 100, 3 );
 add_action( 'login_init', [ ClientFlow::class, 'handleRequest' ] );
 add_action( 'login_init', [ SamlFlow::class, 'handleRequest' ] );
+add_action( 'login_init', [ SessionCheck::class, 'handleRequest' ], 20 );
 add_action( 'login_footer', [ LoginScreen::class, 'render' ] );
 add_filter( 'login_message', [ LoginScreen::class, 'filterLoginMessage' ] );
 add_action( 'network_admin_menu', [ SettingsPage::class, 'register' ] );

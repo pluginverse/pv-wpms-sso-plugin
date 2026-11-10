@@ -116,12 +116,27 @@ final class JourneyContext implements Context {
 
 	#[When(':person requests single sign-on to :site')]
 	#[Given(':person has started single sign-on to :site')]
-	public function requestSso( string $person, string $site ): void {
+	public function requestSso( string $person, string $site, bool $silent = false ): void {
 		$this->fixture->enter( 'Hub', $this->hubUserId );
 		$request = new WP_REST_Request( 'GET', '/pv-wpms-sso/v1/authorize' );
 		$request->set_param( 'client_blog_id', $this->fixture->sites[ $site ] );
 		$request->set_param( 'state', 'bdd-state' );
+		if ( $silent ) {
+			$request->set_param( 'prompt', 'none' );
+		}
 		$this->callbackUrl = AuthorizeEndpoint::handleRequest( $request )->get_headers()['Location'];
+	}
+
+	#[When('the :site login page checks the identity session')]
+	public function sessionCheck( string $site ): void {
+		$this->requestSso( '', $site, true );
+	}
+
+	#[Then(':site offers no single sign-on')]
+	public function noSingleSignOn( string $site ): void {
+		Assert::assertStringStartsWith( get_site_url( $this->fixture->sites[ $site ] ) . '/wp-login.php?', $this->callbackUrl );
+		Assert::assertStringContainsString( 'error=no_session', $this->callbackUrl );
+		Assert::assertStringNotContainsString( 'ticket=', $this->callbackUrl );
 	}
 
 

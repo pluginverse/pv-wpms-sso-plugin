@@ -41,3 +41,23 @@ Feature: Keep existing site access boundaries
       And Riley has started single sign-on to Ridgeview
       When Riley loses their Ridgeview role before returning
       Then Ridgeview refuses the issued sign-in
+
+  Rule: The login page asks the identity site before offering single sign-on
+    @SSO-010
+    Scenario: A signed-in member is recognized before the login form appears
+      Given Alex has roles on Northcoast and Southmountain
+      And Alex has a hub session
+      When the Southmountain login page checks the identity session
+      Then Alex receives access to Southmountain
+
+    @SSO-011
+    Scenario: A site-local user is shown only the site's own login form
+      Given Casey has a role only on Northcoast
+      And Casey has a hub session
+      When the Southmountain login page checks the identity session
+      Then Southmountain offers no single sign-on
+
+    @SSO-012
+    Scenario: A visitor without a hub session is never sent to sign in elsewhere
+      When the Southmountain login page checks the identity session
+      Then Southmountain offers no single sign-on

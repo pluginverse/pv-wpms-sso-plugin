@@ -35,7 +35,11 @@ final class LoginScreen {
 			return;
 		}
 
-		$networkSsoAvailable = ClientFlow::ssoAvailableForThisSite();
+		// With the session check on (decision 0012) the network button exists
+		// only when the identity site just vouched for a session in scope.
+		$sessionCheckEnabled = SessionCheck::enabledForThisSite();
+		$sessionHint         = $sessionCheckEnabled ? SessionCheck::hint( self::queryStringParam( SessionCheck::RESULT_PARAM ) ) : null;
+		$networkSsoAvailable = ClientFlow::ssoAvailableForThisSite() && ( ! $sessionCheckEnabled || null !== $sessionHint );
 		$samlAvailable       = SamlFlow::samlButtonAvailableForThisSite();
 
 		if ( ! $networkSsoAvailable && ! $samlAvailable ) {
@@ -66,21 +70,36 @@ final class LoginScreen {
 			wp_login_url()
 		);
 
-		$networkButtonHtml = $networkSsoAvailable ? sprintf(
-			'<a id="pv-wpms-sso-button" class="button pv-wpms-sso-button" href="%1$s"
-				data-probe-url="%2$s"
-				data-signed-in-label="%3$s">
-				<span class="pv-wpms-sso-label">%4$s</span>
-			</a>',
-			esc_url( $startUrl ),
-			esc_url( self::sessionProbeUrl() ),
-			esc_attr( sprintf(
-				/* translators: %s: user display name, filled by the session probe. */
-				__( 'Continue as %s', 'pv-wpms-sso' ),
-				'%s'
-			) ),
-			esc_html( $buttonLabel )
-		) : '';
+		$signedInLabel = sprintf(
+			/* translators: %s: user display name. */
+			__( 'Continue as %s', 'pv-wpms-sso' ),
+			'%s'
+		);
+
+		if ( ! $networkSsoAvailable ) {
+			$networkButtonHtml = '';
+		} elseif ( null !== $sessionHint ) {
+			$networkButtonHtml = sprintf(
+				'<a id="pv-wpms-sso-button" class="button pv-wpms-sso-button pv-wpms-sso-authenticated" href="%1$s">%2$s
+					<span class="pv-wpms-sso-label">%3$s</span>
+				</a>',
+				esc_url( $startUrl ),
+				'' !== $sessionHint['avatar_url'] ? sprintf( '<img class="pv-wpms-sso-avatar" src="%s" alt="" />', esc_url( $sessionHint['avatar_url'] ) ) : '',
+				esc_html( sprintf( $signedInLabel, $sessionHint['display_name'] ) )
+			);
+		} else {
+			$networkButtonHtml = sprintf(
+				'<a id="pv-wpms-sso-button" class="button pv-wpms-sso-button" href="%1$s"
+					data-probe-url="%2$s"
+					data-signed-in-label="%3$s">
+					<span class="pv-wpms-sso-label">%4$s</span>
+				</a>',
+				esc_url( $startUrl ),
+				esc_url( self::sessionProbeUrl() ),
+				esc_attr( $signedInLabel ),
+				esc_html( $buttonLabel )
+			);
+		}
 
 		$samlButtonHtml = $samlAvailable ? sprintf(
 			'<a id="pv-wpms-sso-saml-button" class="button pv-wpms-sso-button pv-wpms-sso-saml" href="%1$s">
@@ -223,7 +242,7 @@ final class LoginScreen {
 	private static function probeScript(): string {
 		return '(function(){
 	var button=document.getElementById(\'pv-wpms-sso-button\');
-	if(!button||!window.fetch){return;}
+	if(!button||!button.dataset.probeUrl||!window.fetch){return;}
 	fetch(button.dataset.probeUrl,{credentials:\'include\',cache:\'no-store\'})
 		.then(function(response){return response.ok?response.json():null;})
 		.then(function(session){

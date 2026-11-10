@@ -44,6 +44,7 @@ final class Commands {
 		WP_CLI::log( sprintf( 'Network %d', $networkId ) );
 		WP_CLI::log( sprintf( '  enabled: %s', $settings['enabled'] ? 'yes' : 'no' ) );
 		WP_CLI::log( sprintf( '  scope: %s', $settings['scope'] ) );
+		WP_CLI::log( sprintf( '  automatic sign-in: %s', $settings['auto_sign_in'] ? 'yes' : 'no' ) );
 		WP_CLI::log( sprintf( '  button label: %s', '' !== $settings['button_label'] ? $settings['button_label'] : '(default: "Sign in with {network name}")' ) );
 		WP_CLI::log( sprintf( '  identity site: blog %d (%s)', $idpBlogId, get_site_url( $idpBlogId ) ) );
 		WP_CLI::log( sprintf( '  signing key: %s%s', $keyFingerprint, defined( KeyStore::CONSTANT_NAME ) ? ' (from wp-config constant)' : '' ) );

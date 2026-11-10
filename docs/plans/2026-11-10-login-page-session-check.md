@@ -1,7 +1,7 @@
 ---
 title: "Plan: Login-page session check"
 description: "Ask the identity site before rendering the login page: sign in automatically, offer one click, or show no network button."
-status: approved
+status: done
 date: 2026-11-10
 size: bounded
 specs: ["single-sign-on"]

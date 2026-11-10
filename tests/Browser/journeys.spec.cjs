@@ -14,9 +14,17 @@ async function submitLogin(page, person, factor = true) {
   await page.getByRole('button', {name:'Log In', exact:true}).click();
 }
 
+// Opening a login page is the whole request: the page checks the identity
+// session itself and signs in when it can.
 async function sso(page, site, path = '/wp-admin/edit.php') {
   await page.goto(`${origin(site)}/wp-login.php?redirect_to=${encodeURIComponent(origin(site)+path)}`);
-  await page.locator('#pv-wpms-sso-button').click();
+}
+
+async function expectPlainLoginForm(page, site) {
+  await expect(page).toHaveURL(new RegExp(`^${origin(site)}/wp-login\\.php\\?pv_wpms_sso_checked=none`));
+  await expect(page.getByLabel('Username or Email Address')).toBeVisible();
+  await expect(page.locator('#pv-wpms-sso-button')).toHaveCount(0);
+  await expect(page.locator('.notice-error')).toHaveCount(0);
 }
 
 async function identity(page, site) {
@@ -37,27 +45,42 @@ test('SSO-001 completed local login creates separate hub and destination cookies
   expect((await identity(page, 'southmountain')).user).toBe('alex');
 });
 
-test('SSO-009 site-local user signs in without visiting the identity site', async ({page, context}) => {
+test('SSO-009 site-local user signs in without a hand-off to the identity site', async ({page, context}) => {
+  await page.goto(`${origin('northcoast')}/wp-login.php`);
+  await expectPlainLoginForm(page, 'northcoast');
   const visited = [];
-  // Navigations only: the login screen's session probe is a background fetch.
   page.on('request', request => request.isNavigationRequest() && visited.push(new URL(request.url()).hostname));
-  await login(page, 'casey');
+  await submitLogin(page, 'casey');
   await expect(page).toHaveURL(`${origin('northcoast')}/wp-admin/`);
   expect(visited).not.toContain('auth.test');
   const cookies = (await context.cookies()).filter(cookie => cookie.name.startsWith('wordpress_logged_in'));
   expect(cookies.map(cookie => cookie.domain)).toEqual(['northcoast.test']);
 });
 
-test('SSO-002 site-local user is refused without losing source login', async ({page}) => {
+test('SSO-002 site-local user sees only the local form on another site', async ({page}) => {
   await login(page, 'casey');
   await expect(page).toHaveURL(`${origin('northcoast')}/wp-admin/`);
   await sso(page, 'southmountain');
-  // No hub session exists for a site-local login: the identity site asks first.
-  await expect(page).toHaveURL(new RegExp(`^${origin('auth')}/wp-login\\.php`));
-  await submitLogin(page, 'casey');
-  await expect(page).toHaveURL(/pv_wpms_sso_error=access_denied/);
+  await expectPlainLoginForm(page, 'southmountain');
   expect((await identity(page, 'southmountain')).user).toBe('');
   expect((await identity(page, 'northcoast')).user).toBe('casey');
+});
+
+test('SSO-010 after signing out the login page offers one click instead of signing in', async ({page}) => {
+  await login(page, 'alex');
+  await expect(page).toHaveURL(`${origin('northcoast')}/wp-admin/`);
+  await sso(page, 'southmountain');
+  await expect(page).toHaveURL(`${origin('southmountain')}/wp-admin/edit.php`);
+  await page.goto(`${origin('southmountain')}/wp-login.php?action=logout`);
+  await page.getByRole('link', {name: 'log out'}).click();
+  await expect(page).toHaveURL(/loggedout=true/);
+  expect((await identity(page, 'southmountain')).user).toBe('');
+  await page.goto(`${origin('southmountain')}/wp-login.php?loggedout=true`);
+  const button = page.locator('#pv-wpms-sso-button');
+  await expect(button).toContainText('Continue as alex');
+  await button.click();
+  await expect(page).toHaveURL(`${origin('southmountain')}/wp-admin/`);
+  expect((await identity(page, 'southmountain')).user).toBe('alex');
 });
 
 test('SSO-003 membership permits SSO across actual networks', async ({page}) => {
@@ -75,7 +98,7 @@ test('SSO-004 shared identity does not permit an unassigned network', async ({pa
   await login(page, 'alex');
   await expect(page).toHaveURL(`${origin('northcoast')}/wp-admin/`);
   await sso(page, 'ridgeview');
-  await expect(page).toHaveURL(/pv_wpms_sso_error=access_denied/);
+  await expectPlainLoginForm(page, 'ridgeview');
   expect((await identity(page, 'ridgeview')).user).toBe('');
 });
 

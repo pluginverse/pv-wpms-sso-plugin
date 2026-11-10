@@ -30,6 +30,9 @@ final class AuthorizeEndpoint {
 	public const ERROR_UNTRUSTED_CLIENT = 'untrusted_client';
 	public const ERROR_ACCESS_DENIED    = 'access_denied';
 	public const ERROR_SERVER_ERROR     = 'server_error';
+	public const ERROR_NO_SESSION       = 'no_session';
+
+	public const PROMPT_NONE = 'none';
 
 	public static function registerRoutes(): void {
 		register_rest_route(
@@ -50,6 +53,9 @@ final class AuthorizeEndpoint {
 						'type'     => 'string',
 						'required' => true,
 					],
+					'prompt'         => [
+						'type' => 'string',
+					],
 				],
 			]
 		);
@@ -63,14 +69,20 @@ final class AuthorizeEndpoint {
 			return self::redirectToClientLogin( $clientBlogId, $state, self::ERROR_UNTRUSTED_CLIENT );
 		}
 
+		// prompt=none (decision 0012): answer from the existing session only.
+		// Never show a login here, and do not say why there is no ticket.
+		$silent = self::PROMPT_NONE === self::stringParam( $request, 'prompt' );
+
 		$userId = TrustPolicy::currentSessionUserId();
 		if ( 0 === $userId ) {
-			return self::redirectToIdpLogin( $clientBlogId, $state );
+			return $silent
+				? self::redirectToClientLogin( $clientBlogId, $state, self::ERROR_NO_SESSION )
+				: self::redirectToIdpLogin( $clientBlogId, $state );
 		}
 
 		$clientNetworkId = TrustPolicy::trustedClientNetworkId( $clientBlogId );
 		if ( ! TrustPolicy::userPassesClientScope( $userId, $clientBlogId, $clientNetworkId ) ) {
-			return self::redirectToClientLogin( $clientBlogId, $state, self::ERROR_ACCESS_DENIED );
+			return self::redirectToClientLogin( $clientBlogId, $state, $silent ? self::ERROR_NO_SESSION : self::ERROR_ACCESS_DENIED );
 		}
 
 		$callbackUrl = TicketIssuer::issueTicketCallbackUrl( $userId, $clientBlogId, $state );

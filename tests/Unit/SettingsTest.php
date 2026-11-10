@@ -16,6 +16,7 @@ final class SettingsTest extends TestCase {
 				'idp_blog_id'   => 0,
 				'scope'         => Settings::SCOPE_SUPER_ADMINS,
 				'button_label'  => '',
+				'auto_sign_in'  => true,
 			],
 			Settings::mergeWithDefaults( [] )
 		);
@@ -28,8 +29,10 @@ final class SettingsTest extends TestCase {
 				'idp_blog_id'   => 7,
 				'scope'         => Settings::SCOPE_SITE_MEMBERS,
 				'button_label'  => 'Sign in with Acme',
+				'auto_sign_in'  => false,
 			],
 			Settings::mergeWithDefaults( [
+				'auto_sign_in'  => 0,
 				'enabled'       => false,
 				'idp_blog_id'   => 7,
 				'scope'         => Settings::SCOPE_SITE_MEMBERS,
