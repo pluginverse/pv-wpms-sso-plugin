@@ -1,0 +1,57 @@
+name: GitHub release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, mysqli
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Check the tag against the plugin header and changelog
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || { echo "Expected a vX.Y.Z release tag" >&2; exit 1; }
+          grep -Eq "^ \* Version: ${GITHUB_REF_NAME#v}\s*$" pv-wpms-sso.php || { echo "Tag differs from the plugin header version" >&2; exit 1; }
+          python3 scripts/release.py notes "$GITHUB_REF_NAME" > "$RUNNER_TEMP/release-notes.md"
+
+      - run: composer validate --strict
+      - run: composer install --prefer-dist --no-interaction --no-progress
+      - run: npm ci
+      - run: composer phpstan
+      - run: composer test-scripts
+      - run: composer test-trace
+      - run: npx @wordpress/env start
+      - run: composer test
+      - run: composer test-bdd -- --format=progress
+      - name: Stop wp-env
+        if: always()
+        run: npx @wordpress/env stop
+
+      - name: Install runtime dependencies only (bundled SAML library)
+        run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
+      - run: python3 scripts/package.py --tag "$GITHUB_REF_NAME"
+      - run: python3 scripts/package.py --tag "$GITHUB_REF_NAME" --verify dist/pv-wpms-sso.zip
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: ${{ runner.temp }}/release-notes.md
+          files: dist/pv-wpms-sso.zip
+          fail_on_unmatched_files: true

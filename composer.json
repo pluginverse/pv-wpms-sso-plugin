@@ -17,7 +17,9 @@
         "test-unit": "phpunit --testsuite unit",
         "phpstan": "phpstan analyse --memory-limit=1G",
         "test-bdd": "sh bin/behavior.sh",
-        "test-trace": "python3 bin/trace_ids.py --features tests/Behavior/features --tests tests --strict"
+        "test-trace": "python3 bin/trace_ids.py --features tests/Behavior/features --tests tests --strict",
+        "test-scripts": "python3 -m unittest discover -s scripts/tests",
+        "package": "python3 scripts/package.py"
     },
     "authors": [
         {

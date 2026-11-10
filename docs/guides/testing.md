@@ -7,6 +7,7 @@ description: PHPUnit, executable user journeys, stable behavior IDs, and isolate
 
 - `composer test-unit`: pure PHPUnit tests on the host, without WordPress or Docker.
 - `composer phpstan`: level 9 static analysis on runtime PHP.
+- `composer test-scripts`: Python unit tests for the release scripts in `scripts/` (see [Releasing](releasing.md)).
 - `composer env:start`, then `composer test`: PHPUnit unit and WordPress multisite integration tests in wp-env. These tests use the disposable test database, never a production database.
 - `composer test-bdd`: Behat 4 runs Gherkin in `tests/Behavior/features/`, using WordPress's transaction-isolated fixture lifecycle and real plugin methods. The fixture creates separate network records sharing one users table and explicitly switches network as well as blog context. Domain-level acceptance does not prove browser-cookie behavior.
 - `npm run test:browser`: Playwright checks real HTTPS redirects and separate host cookies against an independently configured disposable WordPress environment.

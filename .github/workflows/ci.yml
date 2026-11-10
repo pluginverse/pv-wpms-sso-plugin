@@ -1,6 +1,10 @@
 name: CI
 
-on: [push]
+# Branch pushes only: tags are handled by release.yml, and the build job
+# below derives a branch name from the ref.
+on:
+  push:
+    branches: ["**"]
 
 jobs:
   quality:
@@ -26,6 +30,9 @@ jobs:
 
       - name: Behavior ID trace
         run: composer test-trace
+
+      - name: Release script tests
+        run: composer test-scripts
 
   test:
     runs-on: ubuntu-latest
@@ -111,7 +118,7 @@ jobs:
           rm -rf .github
           rm -rf .idea
           rm -rf .vscode
-          rm -rf bin
+          rm -rf bin scripts dist
           rm -rf build
           rm -rf tests
           rm -rf docs

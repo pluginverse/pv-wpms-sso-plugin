@@ -39,7 +39,7 @@ Existing local sessions that predate a hand-off are not discovered across domain
 composer require pluginverse/pv-wpms-sso
 ```
 
-Or clone/download into `wp-content/plugins/pv-wpms-sso` and **Network Activate**. Then open **Network Admin → Settings → SSO**.
+Or upload `pv-wpms-sso.zip` from a [release](https://github.com/pluginverse/pv-wpms-sso-plugin/releases) (it bundles the SAML library), or clone into `wp-content/plugins/pv-wpms-sso` and run `composer install --no-dev`. Then **Network Activate**. Then open **Network Admin → Settings → SSO**.
 
 ### Configuring
 
@@ -102,7 +102,7 @@ npm run test:browser     # real HTTPS cookies, network routing, local test IdP
 npm run browser:stop
 ```
 
-Suite boundaries and provider limitations are documented in [Testing](docs/guides/testing.md).
+Suite boundaries and provider limitations are documented in [Testing](docs/guides/testing.md). Versions are cut as described in [Releasing](docs/guides/releasing.md).
 
 Design docs live in [`docs/`](docs/index.md): the living [spec](docs/specs/single-sign-on.md), [decision records](docs/decisions/), and the [security guide](docs/guides/security.md).
 

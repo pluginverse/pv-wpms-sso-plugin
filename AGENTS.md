@@ -21,6 +21,7 @@ composer env:stop
 - `pv-wpms-sso.php` — main plugin file: header, autoloader, hook wiring (the only file WordPress loads)
 - `src/` — `PV\WpmsSso` classes; runtime class-map autoloader, no Composer at runtime
 - `tests/` — PHPUnit: pure unit tests + wp-phpunit integration tests
+- `scripts/` — release tooling (`release.py`, `package.py`) and its tests
 - `docs/` — specs, decisions, plans, guides (see below)
 - `assets/` — plugin icon and brand assets
 - `.agents/skills/` — project skills (WordPress CLI, VIP CLI, performance)
@@ -46,6 +47,7 @@ Before editing, check whether the task touches one of these areas and read the g
 
 - Security/auth: `docs/guides/security.md` (trust model, key handling, attack table)
 - Testing: `docs/guides/testing.md` — PHPUnit, executable BDD, behavior IDs, and isolated HTTPS browser fixtures.
+- Releasing: `docs/guides/releasing.md` — version preparation, the release archive, tags, and the release workflow.
 
 ## Skills
 
