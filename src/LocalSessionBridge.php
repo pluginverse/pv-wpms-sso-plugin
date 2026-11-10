@@ -14,13 +14,22 @@ final class LocalSessionBridge {
 	public const STATE_COOKIE = 'pv_wpms_sso_bridge_state';
 	private const LIFETIME_SECONDS = 600;
 
-	/** @param WP_User|WP_Error $user */
-	public static function filterLoginRedirect( string $redirectTo, string $requestedRedirectTo, $user ): string {
-		if ( ! $user instanceof WP_User || ! ClientFlow::ssoAvailableForThisSite() ) {
+	/**
+	 * Filter: login_redirect. Arguments stay untyped: other plugins filter the
+	 * same values, and a login must never fatal on an unexpected one.
+	 *
+	 * @param mixed $redirectTo
+	 * @param mixed $requestedRedirectTo
+	 * @param mixed $user
+	 * @return mixed
+	 */
+	public static function filterLoginRedirect( $redirectTo, $requestedRedirectTo, $user ) {
+		if ( ! is_string( $redirectTo ) || ! $user instanceof WP_User || ! ClientFlow::ssoAvailableForThisSite() ) {
 			return $redirectTo;
 		}
 		$sourceBlogId = get_current_blog_id();
-		if ( ! RedirectGuard::destinationAllowed( $redirectTo, get_site_url( $sourceBlogId ) ) ) {
+		$returnTo = self::landingAfterLogin( $redirectTo, $user );
+		if ( ! RedirectGuard::destinationAllowed( $returnTo, get_site_url( $sourceBlogId ) ) ) {
 			return $redirectTo;
 		}
 		$hubBlogId = ClientFlow::idpBlogIdForThisSite();
@@ -28,10 +37,29 @@ final class LocalSessionBridge {
 			'pv_wpms_sso' => 'bridge_start',
 			'source_blog_id' => $sourceBlogId,
 			'user_id' => $user->ID,
-			'return_to' => $redirectTo,
+			'return_to' => rawurlencode( $returnTo ),
 		] );
 		RedirectGuard::allowSiteRedirect( $url, $hubBlogId );
 		return $url;
+	}
+
+	/**
+	 * wp-login.php picks a landing page for the default destination (no site:
+	 * user admin; no role here: own dashboard; cannot edit: profile). Replacing
+	 * the destination skips that, so apply the same rules to the return URL.
+	 * Landings on another host fail the caller's check and leave core in charge.
+	 */
+	private static function landingAfterLogin( string $redirectTo, WP_User $user ): string {
+		if ( ! in_array( $redirectTo, [ '', 'wp-admin/', admin_url() ], true ) ) {
+			return $redirectTo;
+		}
+		if ( ! get_active_blog_for_user( $user->ID ) && ! is_super_admin( $user->ID ) ) {
+			return user_admin_url();
+		}
+		if ( ! $user->has_cap( 'read' ) ) {
+			return get_dashboard_url( $user->ID );
+		}
+		return $user->has_cap( 'edit_posts' ) ? admin_url() : admin_url( 'profile.php' );
 	}
 
 	/** @return array{state:string,expires_at:int,redirect_to:string}|WP_Error */

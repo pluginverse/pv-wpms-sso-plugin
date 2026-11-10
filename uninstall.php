@@ -23,7 +23,7 @@ if ( is_array( $networks ) ) {
 	}
 }
 
-// Per-blog options: signing keys and client state transients.
+// Per-blog options: signing keys, client state and local-session hand-off transients.
 $optionTables = (array) $wpdb->get_col(
 	$wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->base_prefix ) . '%\_options' )
 );
@@ -34,6 +34,8 @@ foreach ( $optionTables as $optionTable ) {
 		 WHERE option_name = 'pv_wpms_sso_key'
 		    OR option_name LIKE '\_transient\_pv\_wpms\_sso\_state\_%'
 		    OR option_name LIKE '\_transient\_timeout\_pv\_wpms\_sso\_state\_%'
+		    OR option_name LIKE '\_transient\_pv\_wpms\_sso\_bridge\_%'
+		    OR option_name LIKE '\_transient\_timeout\_pv\_wpms\_sso\_bridge\_%'
 		    OR option_name LIKE '\_transient\_pv\_wpms\_sso\_saml\_req\_%'
 		    OR option_name LIKE '\_transient\_timeout\_pv\_wpms\_sso\_saml\_req\_%'"
 	);

@@ -19,6 +19,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Keep every query argument of the post-login destination through the identity-site hand-off, and stop a crafted destination from overriding hand-off parameters.
+- Keep WordPress's default landing page after a local login: members who cannot edit posts reach their profile, and accounts without a role on the site are redirected by WordPress as before.
+- Tolerate unexpected `login_redirect` values from other plugins instead of failing the login.
+- Remove local-session hand-off transients on uninstall.
+
 - Preserve root-relative return paths on subdirectory sites and match session-probe origins by scheme, hostname, and port.
 
 - Return SAML users to their registered mapped-domain destination instead of the hub fallback; use the destination dashboard when no return path was requested.

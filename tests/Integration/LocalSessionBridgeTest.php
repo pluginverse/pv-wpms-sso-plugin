@@ -168,6 +168,44 @@ final class LocalSessionBridgeTest extends JourneyFixture {
 		];
 	}
 
+	/** @return array<string, string> query arguments of the hub hand-off URL */
+	private function handOffArguments( string $person, string $redirectTo ): array {
+		$this->enter( 'Northcoast', $this->users[ $person ] );
+		$url = LocalSessionBridge::filterLoginRedirect( $redirectTo, $redirectTo, get_userdata( $this->users[ $person ] ) );
+		self::assertStringStartsWith( get_site_url( $this->sites['Hub'] ) . '/wp-login.php?', $url );
+		parse_str( (string) parse_url( $url, PHP_URL_QUERY ), $arguments );
+		return $arguments;
+	}
+
+	public function testLoginRedirectKeepsEveryQueryArgumentOfTheReturnUrl(): void {
+		add_user_to_blog( $this->sites['Northcoast'], $this->users['Alex'], 'editor' );
+		$this->enter( 'Northcoast' );
+		$returnTo = admin_url( 'edit.php?post_type=page&paged=2&user_id=999999&pv_wpms_sso=start' );
+		$arguments = $this->handOffArguments( 'Alex', $returnTo );
+		self::assertSame( $returnTo, $arguments['return_to'] );
+		self::assertSame( (string) $this->users['Alex'], $arguments['user_id'] );
+		self::assertSame( 'bridge_start', $arguments['pv_wpms_sso'] );
+	}
+
+	public function testDefaultLandingKeepsCoreRuleForMembersWhoCannotEdit(): void {
+		add_user_to_blog( $this->sites['Northcoast'], $this->users['Casey'], 'subscriber' );
+		add_user_to_blog( $this->sites['Northcoast'], $this->users['Alex'], 'editor' );
+		$this->enter( 'Northcoast' );
+		self::assertSame( admin_url( 'profile.php' ), $this->handOffArguments( 'Casey', admin_url() )['return_to'] );
+		self::assertSame( admin_url(), $this->handOffArguments( 'Alex', admin_url() )['return_to'] );
+	}
+
+	public function testAccountWithoutAnySiteKeepsCoreLandingOnAnotherHost(): void {
+		$this->enter( 'Northcoast', $this->users['Riley'] );
+		self::assertSame( admin_url(), LocalSessionBridge::filterLoginRedirect( admin_url(), '', get_userdata( $this->users['Riley'] ) ) );
+	}
+
+	public function testUnexpectedLoginRedirectValuesPassThrough(): void {
+		$this->enter( 'Northcoast', $this->users['Alex'] );
+		self::assertNull( LocalSessionBridge::filterLoginRedirect( null, null, get_userdata( $this->users['Alex'] ) ) );
+		self::assertSame( admin_url(), LocalSessionBridge::filterLoginRedirect( admin_url(), '', new WP_Error( 'failed' ) ) );
+	}
+
 	public function testArchivedSourceCannotEstablishHubSession(): void {
 		$transaction = $this->beginFlow();
 		$proof = $this->proveFlow( $transaction );
