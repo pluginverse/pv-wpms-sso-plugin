@@ -1,7 +1,0 @@
-parameters:
-    level: 9
-    paths:
-        - src/
-        - pv-wpms-sso.php
-    scanDirectories:
-        - vendor/php-stubs/wp-cli-stubs
