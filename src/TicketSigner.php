@@ -40,19 +40,19 @@ final class TicketSigner {
 	public static function verify( string $token, string $signingKey, int $now ): Ticket {
 		$tokenParts = explode( '.', $token );
 		if ( 2 !== count( $tokenParts ) ) {
-			throw InvalidTicketException::forReason( InvalidTicketException::REASON_MALFORMED, 'expected two dot-separated parts' );
+			throw InvalidTicketException::forReason( InvalidTicketException::REASON_MALFORMED, 'expected two dot-separated parts' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception text is handled at its output boundary.
 		}
 
 		[ $payloadPart, $signaturePart ] = $tokenParts;
 
 		$expectedSignature = hash_hmac( 'sha256', $payloadPart, $signingKey, true );
 		if ( ! hash_equals( $expectedSignature, self::base64UrlDecode( $signaturePart ) ) ) {
-			throw InvalidTicketException::forReason( InvalidTicketException::REASON_SIGNATURE );
+			throw InvalidTicketException::forReason( InvalidTicketException::REASON_SIGNATURE ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception text is handled at its output boundary.
 		}
 
 		$decodedClaims = json_decode( self::base64UrlDecode( $payloadPart ), true, 512, JSON_THROW_ON_ERROR );
 		if ( ! is_array( $decodedClaims ) ) {
-			throw InvalidTicketException::forReason( InvalidTicketException::REASON_MALFORMED, 'payload is not a JSON object' );
+			throw InvalidTicketException::forReason( InvalidTicketException::REASON_MALFORMED, 'payload is not a JSON object' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception text is handled at its output boundary.
 		}
 
 		/** @var array<string, mixed> $claims */
@@ -60,11 +60,11 @@ final class TicketSigner {
 		$ticket = Ticket::fromClaims( $claims );
 
 		if ( $ticket->issuedAt > $now + self::CLOCK_SKEW_SECONDS ) {
-			throw InvalidTicketException::forReason( InvalidTicketException::REASON_NOT_YET_VALID );
+			throw InvalidTicketException::forReason( InvalidTicketException::REASON_NOT_YET_VALID ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception text is handled at its output boundary.
 		}
 
 		if ( $ticket->expiresAt < $now ) {
-			throw InvalidTicketException::forReason( InvalidTicketException::REASON_EXPIRED );
+			throw InvalidTicketException::forReason( InvalidTicketException::REASON_EXPIRED ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception text is handled at its output boundary.
 		}
 
 		return $ticket;

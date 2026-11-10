@@ -10,6 +10,7 @@
     "browser:start": "wp-env --config tests/Browser/.wp-env.json start",
     "browser:stop": "wp-env --config tests/Browser/.wp-env.json stop",
     "browser:seed": "node tests/Browser/seed.cjs",
-    "test:browser": "playwright test --config tests/Browser/playwright.config.cjs"
+    "test:browser": "playwright test --config tests/Browser/playwright.config.cjs",
+    "listing:capture": "playwright test --config tests/Browser/listing/playwright.config.cjs"
   }
 }

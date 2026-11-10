@@ -23,7 +23,8 @@ composer env:stop
 - `tests/` — PHPUnit: pure unit tests + wp-phpunit integration tests
 - `scripts/` — release tooling (`release.py`, `package.py`) and its tests
 - `docs/` — specs, decisions, plans, guides (see below)
-- `assets/` — plugin icon and brand assets
+- `assets/` — brand symbol and listing artwork sources; `.wordpress-org/` holds the published listing images
+- `readme.txt` — WordPress.org listing text; its stable tag and changelog are written by `scripts/release.py`
 - `.agents/skills/` — project skills (WordPress CLI, VIP CLI, performance)
 
 ## Documentation
@@ -47,7 +48,8 @@ Before editing, check whether the task touches one of these areas and read the g
 
 - Security/auth: `docs/guides/security.md` (trust model, key handling, attack table)
 - Testing: `docs/guides/testing.md` — PHPUnit, executable BDD, behavior IDs, and isolated HTTPS browser fixtures.
-- Releasing: `docs/guides/releasing.md` — version preparation, the release archive, tags, and the release workflow.
+- Releasing: `docs/guides/releasing.md` — version preparation, the release archive, tags, Plugin Check, Composer, and WordPress.org publication.
+- Listing: `docs/guides/listing.md` — WordPress.org artwork and screenshots.
 
 ## Skills
 

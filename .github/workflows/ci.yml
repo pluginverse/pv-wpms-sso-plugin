@@ -93,8 +93,28 @@ jobs:
         if: always()
         run: npm run browser:stop
 
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          coverage: none
+      - name: Install runtime dependencies only (bundled SAML library)
+        run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+      - run: python3 scripts/package.py
+      - run: python3 scripts/package.py --verify dist/pv-wpms-sso.zip
+      - name: Extract release archive for Plugin Check
+        run: unzip -q dist/pv-wpms-sso.zip -d dist/plugin-check
+      - name: Check packaged plugin
+        uses: WordPress/plugin-check-action@v1
+        with:
+          build-dir: ./dist/plugin-check/pv-wpms-sso
+          exclude-directories: vendor
+
   build:
-    needs: [quality, test, browser]
+    needs: [quality, test, browser, package]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -118,7 +138,7 @@ jobs:
           rm -rf .github
           rm -rf .idea
           rm -rf .vscode
-          rm -rf bin scripts dist
+          rm -rf bin scripts dist .wordpress-org assets/listing
           rm -rf build
           rm -rf tests
           rm -rf docs

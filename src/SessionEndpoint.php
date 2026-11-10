@@ -11,7 +11,6 @@ use function get_sites;
 use function get_userdata;
 use function in_array;
 use function is_array;
-use function parse_url;
 use function register_rest_route;
 use function strtolower;
 use WP_REST_Request;
@@ -89,7 +88,7 @@ final class SessionEndpoint {
 	 * and schemes must agree; subdirectory sites share one origin and cookies.
 	 */
 	private static function blogIdForOrigin( string $originHeader ): int {
-		$originParts = parse_url( $originHeader );
+		$originParts = wp_parse_url( $originHeader );
 		if ( ! is_array( $originParts ) || ! isset( $originParts['host'] ) ) {
 			return 0;
 		}

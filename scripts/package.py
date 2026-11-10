@@ -10,8 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SLUG = 'pv-wpms-sso'
 VERSION = re.compile(r'(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\Z')
-TOP_LEVEL_FILES = (SLUG + '.php', 'uninstall.php', 'LICENSE.txt', 'README.md', 'CHANGELOG.md', 'composer.json')
-DIRECTORIES = ('src', 'assets', 'vendor')
+TOP_LEVEL_FILES = (SLUG + '.php', 'uninstall.php', 'readme.txt', 'LICENSE.txt', 'README.md', 'CHANGELOG.md', 'composer.json')
+DIRECTORIES = ('src', 'vendor')
 
 
 def header_version(root):
@@ -32,6 +32,9 @@ def require_production_vendor(root):
 
 def files_and_version(root, tag=None):
     version = header_version(root)
+    stable = re.findall(r'^Stable tag:\s*(\S+)\s*$', (root / 'readme.txt').read_text(), re.M)
+    if stable != [version]:
+        raise ValueError('readme.txt stable tag must match the plugin header version')
     if tag is not None and tag != f'v{version}':
         raise ValueError(f'Tag must match v{version}')
     require_production_vendor(root)
@@ -60,7 +63,10 @@ def main():
                 names = archive.namelist()
                 if len(names) != len(set(names)) or set(names) != set(files):
                     raise ValueError('Archive contents differ from release files')
-                if any(archive.read(name) != content for name, content in files.items()):
+                # Composer regenerates vendor/composer/ per install (root reference,
+                # autoloader layout); its file list is checked above, its bytes are not.
+                generated = f'{SLUG}/vendor/composer/'
+                if any(archive.read(name) != content for name, content in files.items() if not name.startswith(generated)):
                     raise ValueError('Archive content differs from this checkout')
             print(f'Verified {args.verify} ({version}, {len(files)} files)')
         else:

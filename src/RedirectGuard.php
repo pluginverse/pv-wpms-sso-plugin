@@ -7,7 +7,7 @@ namespace PV\WpmsSso;
 use function array_values;
 use function in_array;
 use function is_array;
-use function parse_url;
+use function parse_url; // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure and unit-tested without WordPress; PHP 8.2 parses consistently.
 use function str_starts_with;
 use function strtolower;
 
@@ -52,7 +52,7 @@ final class RedirectGuard {
 	 * @param array<int, string> $extraAllowedHosts lowercase "host" or "host:port" entries
 	 */
 	public static function destinationAllowed( string $destinationUrl, string $siteUrl, array $extraAllowedHosts = [] ): bool {
-		$destinationParts = parse_url( $destinationUrl );
+		$destinationParts = parse_url( $destinationUrl ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure and unit-tested without WordPress; PHP 8.2 parses consistently.
 
 		if ( ! is_array( $destinationParts ) ) {
 			return false;
@@ -88,8 +88,8 @@ final class RedirectGuard {
 	 * origins against the registered site they claim to be.
 	 */
 	public static function urlMatchesSiteHost( string $candidateUrl, string $siteUrl ): bool {
-		$candidateParts = parse_url( $candidateUrl );
-		$siteParts      = parse_url( $siteUrl );
+		$candidateParts = parse_url( $candidateUrl ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure and unit-tested without WordPress; PHP 8.2 parses consistently.
+		$siteParts      = parse_url( $siteUrl ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure and unit-tested without WordPress; PHP 8.2 parses consistently.
 
 		if ( ! is_array( $candidateParts ) || ! is_array( $siteParts ) ) {
 			return false;
@@ -121,7 +121,7 @@ final class RedirectGuard {
 	 * @return array<int, string>
 	 */
 	private static function siteHosts( string $siteUrl, array $extraAllowedHosts ): array {
-		$siteParts = parse_url( $siteUrl );
+		$siteParts = parse_url( $siteUrl ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure and unit-tested without WordPress; PHP 8.2 parses consistently.
 		$hosts     = [];
 
 		if ( is_array( $siteParts ) && isset( $siteParts['host'] ) ) {

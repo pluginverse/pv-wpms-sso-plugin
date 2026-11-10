@@ -3,6 +3,8 @@
 /.vscode/
 /bin/
 /scripts/
+/.wordpress-org/
+/assets/listing/
 /dist/
 /build/
 /tests/

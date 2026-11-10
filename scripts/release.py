@@ -19,6 +19,13 @@ def notes(changelog, version):
     return match.group(1).strip()
 
 
+def replace_once(text, pattern, replacement, label):
+    result, count = re.subn(pattern, replacement, text, flags=re.M)
+    if count != 1:
+        raise ValueError(f'Expected exactly one {label}')
+    return result
+
+
 def header_version(header):
     matches = HEADER_VERSION.findall(header)
     if len(matches) != 1 or not VERSION.fullmatch(matches[0][1]):
@@ -43,9 +50,15 @@ def prepare(root, version, date):
         raise ValueError('New version must not be lower than the plugin header version')
     header = HEADER_VERSION.sub(lambda found: found.group(1) + version + found.group(3), header)
     body = match.group(1).strip()
+    readme = (root / 'readme.txt').read_text()
+    readme = replace_once(readme, r'^(Stable tag:\s*)\S+(\s*)$', lambda found: found.group(1) + version + found.group(2), 'stable tag')
+    readme_notes = re.sub(r'^### (.+)$', r'\1:', body, flags=re.M)
+    readme_notes = re.sub(r'^- ', '* ', readme_notes, flags=re.M)
+    readme = replace_once(readme, r'^== Changelog ==$', lambda found: '== Changelog ==\n\n= ' + version + ' =\n' + readme_notes, 'readme changelog heading')
     updated = changelog[:match.start()] + '## [Unreleased]\n\n## [' + version + '] - ' + date + '\n\n' + body + '\n\n' + changelog[match.end():]
     (root / 'CHANGELOG.md').write_text(updated.rstrip('\n') + '\n')
     (root / PLUGIN_FILE).write_text(header)
+    (root / 'readme.txt').write_text(readme)
 
 
 def main():

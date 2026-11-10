@@ -1,11 +1,45 @@
 {
     "name": "pluginverse/pv-wpms-sso",
-    "description": "Plugin Verse WordPress Multisite Single Sign On \u2014 one identity site, one login, signed single-use tickets into every site of a domain-mapped multisite or same-database multi-network install.",
+    "description": "Plugin Verse WordPress Multisite Single Sign On — one identity site, one login, signed single-use tickets into every site of a domain-mapped multisite or same-database multi-network install.",
     "type": "wordpress-plugin",
     "license": "GPL-3.0-or-later",
+    "keywords": [
+        "wordpress",
+        "wordpress-plugin",
+        "multisite",
+        "sso",
+        "single-sign-on",
+        "saml"
+    ],
+    "homepage": "https://github.com/pluginverse/pv-wpms-sso-plugin",
+    "authors": [
+        {
+            "name": "Plugin Verse",
+            "homepage": "https://github.com/pluginverse"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "onelogin/php-saml": "^4.0"
+    },
+    "require-dev": {
+        "behat/behat": "^4.0",
+        "php-stubs/wp-cli-stubs": "^2.12",
+        "phpstan/extension-installer": "^1.0",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpunit/phpunit": "^9.0",
+        "szepeviktor/phpstan-wordpress": "^2.0",
+        "wp-phpunit/wp-phpunit": "^6.7",
+        "yoast/phpunit-polyfills": "^4.0"
+    },
     "autoload": {
         "psr-4": {
-            "PV\\WpmsSso\\": "src/",
+            "PV\\WpmsSso\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
             "PV\\WpmsSso\\Tests\\": "tests/"
         }
     },
@@ -21,12 +55,6 @@
         "test-scripts": "python3 -m unittest discover -s scripts/tests",
         "package": "python3 scripts/package.py"
     },
-    "authors": [
-        {
-            "name": "Plugin Verse",
-            "homepage": "https://github.com/pluginverse"
-        }
-    ],
     "config": {
         "platform": {
             "php": "8.2"
@@ -35,19 +63,5 @@
         "allow-plugins": {
             "phpstan/extension-installer": true
         }
-    },
-    "require-dev": {
-        "behat/behat": "^4.0",
-        "php-stubs/wp-cli-stubs": "^2.12",
-        "phpstan/extension-installer": "^1.0",
-        "phpstan/phpstan": "^2.0",
-        "phpstan/phpstan-phpunit": "^2.0",
-        "phpunit/phpunit": "^9.0",
-        "szepeviktor/phpstan-wordpress": "^2.0",
-        "wp-phpunit/wp-phpunit": "^6.7",
-        "yoast/phpunit-polyfills": "^4.0"
-    },
-    "require": {
-        "onelogin/php-saml": "^4.0"
     }
 }

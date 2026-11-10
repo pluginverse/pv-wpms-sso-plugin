@@ -63,18 +63,18 @@ final class JtiTable {
 		$now         = $now ?? time();
 		$purgeBefore = $now - self::PURGE_GRACE_SECONDS;
 
-		$deleteSql = $wpdb->prepare( 'DELETE FROM ' . self::tableName() . ' WHERE expires_at < %d', $purgeBefore );
-		if ( is_string( $deleteSql ) ) {
-			$wpdb->query( $deleteSql );
-		}
+		// Opportunistic purge; the registry is the plugin's own table, read and
+		// written only here, so there is nothing to cache.
+		$wpdb->query( (string) $wpdb->prepare( 'DELETE FROM %i WHERE expires_at < %d', self::tableName(), $purgeBefore ) );
 
-		$insertSql = $wpdb->prepare(
-			'INSERT IGNORE INTO ' . self::tableName() . ' (jti_hash, expires_at) VALUES (%s, %d)',
-			hash( 'sha256', $ticketId ),
-			$expiresAt
+		return 1 === (int) $wpdb->query(
+			(string) $wpdb->prepare(
+				'INSERT IGNORE INTO %i (jti_hash, expires_at) VALUES (%s, %d)',
+				self::tableName(),
+				hash( 'sha256', $ticketId ),
+				$expiresAt
+			)
 		);
-
-		return is_string( $insertSql ) && 1 === (int) $wpdb->query( $insertSql );
 	}
 
 	/** @return int number of rows removed */
@@ -83,9 +83,7 @@ final class JtiTable {
 
 		self::ensureTableExists();
 
-		$deleteSql = $wpdb->prepare( 'DELETE FROM ' . self::tableName() . ' WHERE expires_at < %d', $olderThanTimestamp );
-
-		return is_string( $deleteSql ) ? (int) $wpdb->query( $deleteSql ) : 0;
+		return (int) $wpdb->query( (string) $wpdb->prepare( 'DELETE FROM %i WHERE expires_at < %d', self::tableName(), $olderThanTimestamp ) );
 	}
 
 	public static function ensureTableExists(): void {
@@ -95,10 +93,7 @@ final class JtiTable {
 
 		global $wpdb;
 
-		$lookupSql   = $wpdb->prepare( 'SHOW TABLES LIKE %s', self::tableName() );
-		$knownTables = is_string( $lookupSql )
-			? (array) $wpdb->get_col( $lookupSql )
-			: [];
+		$knownTables = (array) $wpdb->get_col( (string) $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( self::tableName() ) ) );
 		$exists      = in_array( self::tableName(), $knownTables, true );
 
 		if ( $exists ) {

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7eea5e7ba2702c41ac2fbbd5767fcde7",
+    "content-hash": "51b336b14816169daa501f9a3d2ad0da",
     "packages": [
         {
             "name": "onelogin/php-saml",
@@ -4517,7 +4517,9 @@
     "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": {},
+    "platform": {
+        "php": ">=8.2"
+    },
     "platform-dev": {},
     "platform-overrides": {
         "php": "8.2"

@@ -50,6 +50,15 @@ jobs:
       - run: python3 scripts/package.py --tag "$GITHUB_REF_NAME"
       - run: python3 scripts/package.py --tag "$GITHUB_REF_NAME" --verify dist/pv-wpms-sso.zip
 
+      - name: Extract release archive for Plugin Check
+        run: unzip -q dist/pv-wpms-sso.zip -d dist/plugin-check
+
+      - name: Check packaged plugin
+        uses: WordPress/plugin-check-action@v1
+        with:
+          build-dir: ./dist/plugin-check/pv-wpms-sso
+          exclude-directories: vendor
+
       - uses: softprops/action-gh-release@v2
         with:
           body_path: ${{ runner.temp }}/release-notes.md

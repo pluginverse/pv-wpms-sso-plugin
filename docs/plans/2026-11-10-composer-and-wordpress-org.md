@@ -1,7 +1,7 @@
 ---
 title: "Plan: Composer and WordPress.org distribution"
 description: "Make 0.1.0 requirable with Composer and ready for WordPress.org review and publication."
-status: approved
+status: done
 date: 2026-11-10
 size: bounded
 specs: []

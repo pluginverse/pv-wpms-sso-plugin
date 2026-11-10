@@ -101,7 +101,7 @@ final class SettingsPage {
 				<?php
 				printf(
 					/* translators: %s: site URL of the identity site. */
-					esc_html__( 'Sites of this network offer a "Sign in with" button that delegates to the identity site: %s. Users sign in there once (two-factor included) and are signed into any site of the network.', 'pv-wpms-sso' ),
+					esc_html__( 'Login screens of this network\'s sites ask the identity site %s whether the visitor already has a session there. Visitors who do, and who may enter the site, are signed in; everyone else sees the normal login form.', 'pv-wpms-sso' ),
 					'<code>' . esc_html( $idpSiteUrl ) . '</code>'
 				);
 				?>

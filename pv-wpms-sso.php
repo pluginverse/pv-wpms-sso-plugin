@@ -7,7 +7,7 @@
  * Requires PHP: 8.2
  * Author: Plugin Verse
  * Author URI: https://github.com/pluginverse
- * License: GPL v3
+ * License: GPL-3.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain: pv-wpms-sso
  * Network: true
@@ -27,13 +27,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * Additional Permission Under GNU GPL version 3 section 7:
- *
- * The name "Plugin Verse" and its associated branding elements are
- * protected by copyright/trademark law and may not be used in
- * association with derivative works that are not owned by Plugin Verse
- * without express written permission.
  */
 
 namespace PV\WpmsSso;
@@ -42,7 +35,12 @@ use function add_action;
 use function register_activation_hook;
 use function spl_autoload_register;
 
-if ( PHP_VERSION_ID < 80200 ) {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+// composer.json declares the PHP floor, but installs without Composer do not enforce it.
+if ( PHP_VERSION_ID < 80200 ) { // @phpstan-ignore smaller.alwaysFalse
 	_doing_it_wrong( __FILE__, 'PV WPMS SSO requires PHP 8.2 or higher.', '0.1.0' );
 
 	return;
@@ -100,12 +98,6 @@ if ( is_readable( $pv_wpms_sso_composer_autoload ) ) {
 function saml_library_available(): bool {
 	return class_exists( '\OneLogin\Saml2\Settings' );
 }
-
-function load_plugin_translations(): void {
-	load_plugin_textdomain( 'pv-wpms-sso', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-}
-
-add_action( 'init', '\PV\WpmsSso\load_plugin_translations' );
 
 register_activation_hook( __FILE__, [ JtiTable::class, 'createTable' ] );
 

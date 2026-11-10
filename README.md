@@ -37,11 +37,16 @@ Existing local sessions that predate a hand-off are not discovered across domain
 
 ## Installation
 
+Upload `pv-wpms-sso.zip` from a [release](https://github.com/pluginverse/pv-wpms-sso-plugin/releases) (it bundles the SAML library) and **Network Activate**. Then open **Network Admin → Settings → SSO**.
+
+With Composer, add the repository and require a tagged version:
+
 ```sh
-composer require pluginverse/pv-wpms-sso
+composer config repositories.pv-wpms-sso vcs https://github.com/pluginverse/pv-wpms-sso-plugin
+composer require pluginverse/pv-wpms-sso:^0.1
 ```
 
-Or upload `pv-wpms-sso.zip` from a [release](https://github.com/pluginverse/pv-wpms-sso-plugin/releases) (it bundles the SAML library), or clone into `wp-content/plugins/pv-wpms-sso` and run `composer install --no-dev`. Then **Network Activate**. Then open **Network Admin → Settings → SSO**.
+Composer installs the SAML library into your project's `vendor/`; details and requirements are in [Releasing](docs/guides/releasing.md#composer). From a clone, run `composer install --no-dev` inside the plugin folder.
 
 ### Configuring
 
@@ -119,4 +124,4 @@ Design docs live in [`docs/`](docs/index.md): the living [spec](docs/specs/singl
 
 ## License
 
-GPL-3.0-or-later with the Plugin Verse brand-protection additional permission — see [LICENSE.txt](LICENSE.txt). The built package bundles [onelogin/php-saml](https://github.com/SAML-Toolkits/php-saml) (MIT) and its dependencies.
+GPL-3.0-or-later — see [LICENSE.txt](LICENSE.txt). The built package bundles [onelogin/php-saml](https://github.com/SAML-Toolkits/php-saml) (MIT) and its dependencies.

@@ -9,10 +9,13 @@ spec.loader.exec_module(release)
 
 HEADER = '<?php\n/**\n * Plugin Name: PV WPMS SSO\n * Version: 0.1.0\n */\n_doing_it_wrong( __FILE__, "x", \'0.1.0\' );\n'
 
+README = '=== PV WPMS SSO ===\nStable tag: 0.1.0\n\n== Changelog ==\n\n= 0.1.0 =\n* Initial release.\n'
+
 
 def project(root, changelog):
     (root / 'CHANGELOG.md').write_text(changelog)
     (root / 'pv-wpms-sso.php').write_text(HEADER)
+    (root / 'readme.txt').write_text(README)
 
 
 class ReleaseTest(unittest.TestCase):
@@ -42,6 +45,9 @@ class ReleaseTest(unittest.TestCase):
             header = (root / 'pv-wpms-sso.php').read_text()
             self.assertIn(' * Version: 0.2.0\n', header)
             self.assertIn("'0.1.0' );", header)
+            readme = (root / 'readme.txt').read_text()
+            self.assertIn('Stable tag: 0.2.0\n', readme)
+            self.assertIn('== Changelog ==\n\n= 0.2.0 =\n* Next.\n\n= 0.1.0 =\n* Initial release.', readme)
             self.assertEqual(release.notes((root / 'CHANGELOG.md').read_text(), '0.1.0'), '- First.')
 
     def test_invalid_requests_write_nothing(self):
@@ -57,6 +63,7 @@ class ReleaseTest(unittest.TestCase):
                 release.prepare(root, '0.0.9', '2026-12-01')
             self.assertEqual((root / 'CHANGELOG.md').read_text(), '## [Unreleased]\n\n- Next.\n')
             self.assertEqual((root / 'pv-wpms-sso.php').read_text(), HEADER)
+            self.assertEqual((root / 'readme.txt').read_text(), README)
 
 
 if __name__ == '__main__':

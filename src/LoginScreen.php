@@ -117,10 +117,10 @@ final class LoginScreen {
 			<style>%4$s</style>
 			<script>%5$s</script>',
 			esc_html__( 'or', 'pv-wpms-sso' ),
-			$networkButtonHtml,
-			$samlButtonHtml,
-			self::buttonCss(),
-			self::probeScript()
+			$networkButtonHtml, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built above from escaped parts.
+			$samlButtonHtml, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built above from escaped parts.
+			self::buttonCss(), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static stylesheet without request data.
+			self::probeScript() // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static script without request data.
 		);
 	}
 
@@ -230,10 +230,10 @@ final class LoginScreen {
 	}
 
 	private static function buttonCss(): string {
-		return '.pv-wpms-sso{margin:12px 0;padding:0 24px;box-sizing:border-box}
+		return '.pv-wpms-sso{width:320px;max-width:100%;margin:16px auto;padding:0;box-sizing:border-box}
 .pv-wpms-sso-separator{position:relative;text-align:center;margin:8px 0}
 .pv-wpms-sso-separator:before{content:"";position:absolute;top:50%;left:0;width:100%;border-top:1px solid #dcdcde}
-.pv-wpms-sso-separator span{position:relative;background:#fff;padding:0 8px;color:#787c82;font-size:12px}
+.pv-wpms-sso-separator span{position:relative;background:#f0f0f1;padding:0 8px;color:#787c82;font-size:12px}
 .pv-wpms-sso-buttons{display:grid;gap:8px}
 .pv-wpms-sso-button{display:flex!important;align-items:center;justify-content:center;gap:8px;width:100%;height:36px;line-height:2;padding:0 16px}
 .pv-wpms-sso-avatar{width:20px;height:20px;border-radius:50%;flex:none}';
