@@ -60,7 +60,7 @@ The package is `pluginverse/pv-wpms-sso`, type `wordpress-plugin`; a pushed tag 
 }
 ```
 
-The repository is private: Composer needs GitHub credentials (`composer config --global github-oauth.github.com <token>`) until it is opened. Consumers also need `composer/installers` (allowed in `config.allow-plugins`) and an `extra.installer-paths` entry placing `type:wordpress-plugin` packages in the plugins directory. Installed this way the plugin has no `vendor/` of its own; the SAML library comes from the consumer's autoloader, which must be loaded before plugins (as Bedrock does).
+The repository is public, so no credentials are needed. Consumers also need `composer/installers` (allowed in `config.allow-plugins`) and an `extra.installer-paths` entry placing `type:wordpress-plugin` packages in the plugins directory. Installed this way the plugin has no `vendor/` of its own; the SAML library comes from the consumer's autoloader, which must be loaded before plugins (as Bedrock does).
 
 ## Plugin Check review notes
 
