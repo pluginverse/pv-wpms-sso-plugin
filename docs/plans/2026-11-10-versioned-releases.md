@@ -1,7 +1,7 @@
 ---
 title: "Plan: Versioned releases"
 description: "Release tooling and the first tagged version, following the PV Redirects process."
-status: approved
+status: done
 date: 2026-11-10
 size: bounded
 specs: []
